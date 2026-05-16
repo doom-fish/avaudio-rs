@@ -42,9 +42,18 @@ fn main() {
         .expect("failed to build Swift bridge");
 
     if !output.status.success() {
-        eprintln!("Swift build STDOUT:\n{}", String::from_utf8_lossy(&output.stdout));
-        eprintln!("Swift build STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
-        panic!("Swift bridge build failed with exit code {:?}", output.status.code());
+        eprintln!(
+            "Swift build STDOUT:\n{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        eprintln!(
+            "Swift build STDERR:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        panic!(
+            "Swift bridge build failed with exit code {:?}",
+            output.status.code()
+        );
     }
 
     println!("cargo:rustc-link-search=native={swift_build_dir}/release");

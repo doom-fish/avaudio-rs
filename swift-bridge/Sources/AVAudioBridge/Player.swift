@@ -46,6 +46,14 @@ public func av_audio_player_node_release(_ playerPtr: UnsafeMutableRawPointer?) 
     Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).release()
 }
 
+@_cdecl("av_audio_player_node_get_node_unretained")
+public func av_audio_player_node_get_node_unretained(
+    _ playerPtr: UnsafeMutableRawPointer
+) -> UnsafeMutableRawPointer? {
+    let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
+    return Unmanaged.passUnretained(player.node).toOpaque()
+}
+
 @_cdecl("av_audio_player_node_info_json")
 public func av_audio_player_node_info_json(
     _ playerPtr: UnsafeMutableRawPointer,

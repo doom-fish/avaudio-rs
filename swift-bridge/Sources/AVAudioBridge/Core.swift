@@ -19,6 +19,12 @@ public func ava_string_free(_ str: UnsafeMutablePointer<CChar>?) {
     free(str)
 }
 
+@_cdecl("av_audio_node_release")
+public func av_audio_node_release(_ ptr: UnsafeMutableRawPointer?) {
+    guard let ptr else { return }
+    Unmanaged<AVAudioNode>.fromOpaque(ptr).release()
+}
+
 func ffiString(_ string: String) -> UnsafeMutablePointer<CChar>? {
     string.withCString { strdup($0) }
 }

@@ -10,6 +10,7 @@ use serde::Deserialize;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::file::{AudioFile, PCMBuffer};
+use crate::node::AudioNodeHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,6 +32,12 @@ impl Drop for AudioPlayerNode {
             unsafe { ffi::av_audio_player_node_release(self.ptr) };
             self.ptr = ptr::null_mut();
         }
+    }
+}
+
+impl AudioNodeHandle for AudioPlayerNode {
+    fn as_node_ptr(&self) -> *mut c_void {
+        unsafe { ffi::av_audio_player_node_get_node_unretained(self.ptr) }
     }
 }
 
@@ -73,7 +80,11 @@ impl AudioPlayerNode {
         self.schedule_buffer_with_optional_completion(buffer, None::<fn()>)
     }
 
-    pub fn schedule_buffer_with_completion<F>(&self, buffer: &PCMBuffer, callback: F) -> Result<(), AVAudioError>
+    pub fn schedule_buffer_with_completion<F>(
+        &self,
+        buffer: &PCMBuffer,
+        callback: F,
+    ) -> Result<(), AVAudioError>
     where
         F: FnMut() + Send + 'static,
     {
@@ -84,7 +95,11 @@ impl AudioPlayerNode {
         self.schedule_file_with_optional_completion(file, None::<fn()>)
     }
 
-    pub fn schedule_file_with_completion<F>(&self, file: &AudioFile, callback: F) -> Result<(), AVAudioError>
+    pub fn schedule_file_with_completion<F>(
+        &self,
+        file: &AudioFile,
+        callback: F,
+    ) -> Result<(), AVAudioError>
     where
         F: FnMut() + Send + 'static,
     {
@@ -191,6 +206,7 @@ fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, 
         .to_string_lossy()
         .into_owned();
     unsafe { ffi::ava_string_free(json_ptr) };
-    serde_json::from_str::<T>(&json)
-        .map_err(|error| AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}")))
+    serde_json::from_str::<T>(&json).map_err(|error| {
+        AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}"))
+    })
 }

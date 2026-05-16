@@ -1,29 +1,19 @@
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
-use std::thread;
-use std::time::Duration;
+#[path = "support/mod.rs"]
+mod support;
+
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use avaudio::prelude::*;
+use support::{artifacts_dir, make_test_audio, print_skip, short_sleep};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let artifacts = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/example-artifacts");
-    std::fs::create_dir_all(&artifacts)?;
-
-    let audio_path = artifacts.join("test.aiff");
-    if audio_path.exists() {
-        std::fs::remove_file(&audio_path)?;
-    }
-
-    let say_status = Command::new("/usr/bin/say")
-        .args([
-            "-o",
-            audio_path.to_str().ok_or("non-UTF-8 artifact path")?,
-            "test",
-        ])
-        .status()?;
-    if !say_status.success() {
-        return Err(format!("`say` failed with status {say_status}").into());
+    let audio_path = artifacts_dir()?.join("01-smoke-surface.aiff");
+    if let Err(error) = make_test_audio(&audio_path) {
+        print_skip(&format!("could not generate test audio: {error}"));
+        return Ok(());
     }
 
     let file = AudioFile::open_for_reading(&audio_path)?;
@@ -41,7 +31,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     engine.attach_player_node(&player);
     engine.connect_player_node_to_main_mixer(&player, Some(&format));
     engine.prepare();
-    engine.start()?;
+    if let Err(error) = engine.start() {
+        print_skip(&format!("engine.start() unavailable (headless): {error}"));
+        return Ok(());
+    }
 
     let completed = Arc::new(AtomicBool::new(false));
     let completed_flag = Arc::clone(&completed);
@@ -50,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     })?;
     player.play();
 
-    thread::sleep(Duration::from_millis(250));
+    short_sleep();
     println!("engine running: {}", engine.is_running()?);
     println!("player playing: {}", player.is_playing()?);
     println!("completion fired: {}", completed.load(Ordering::SeqCst));

@@ -56,7 +56,11 @@ impl Drop for AudioFormat {
 }
 
 impl AudioFormat {
-    pub fn standard(sample_rate: f64, channel_count: u32, interleaved: bool) -> Result<Self, AVAudioError> {
+    pub fn standard(
+        sample_rate: f64,
+        channel_count: u32,
+        interleaved: bool,
+    ) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let ptr = unsafe {
             ffi::av_audio_format_create_standard(sample_rate, channel_count, interleaved, &mut err)
@@ -98,6 +102,7 @@ fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, 
         .to_string_lossy()
         .into_owned();
     unsafe { ffi::ava_string_free(json_ptr) };
-    serde_json::from_str::<T>(&json)
-        .map_err(|error| AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}")))
+    serde_json::from_str::<T>(&json).map_err(|error| {
+        AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}"))
+    })
 }

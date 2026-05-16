@@ -1,13 +1,20 @@
 # avaudio-rs
 
-Safe Rust bindings for Apple's `AVAudioEngine`, `AVAudioPlayerNode`, `AVAudioFile`, `AVAudioFormat`, and `AVAudioPCMBuffer` on macOS.
+Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
 
 ## Features
 
-- Read audio files into `AVAudioPCMBuffer`s.
-- Build and drive an `AVAudioEngine` graph from Rust.
-- Schedule `AVAudioFile` and `AVAudioPCMBuffer` playback on `AVAudioPlayerNode`.
-- Receive one-shot playback-completion callbacks with a Rust closure.
+`avaudio` now covers the core pieces needed to build and inspect `AVFoundation` audio graphs from Rust:
+
+- `AVAudioEngine` graph creation, preparation, start/stop/reset, and generic node attach/connect helpers.
+- `AVAudioPlayerNode`, `AVAudioMixerNode`, `AVAudioInputNode`, `AVAudioOutputNode`, and `AVAudioEnvironmentNode` wrappers.
+- `AVAudioFile`, `AVAudioPCMBuffer`, `AVAudioBuffer`, `AVAudioFormat`, and `AVAudioConverter` support.
+- `AVAudioUnitTimePitch`, `AVAudioUnitReverb`, `AVAudioUnitEQ`, and shared audio-unit bypass helpers.
+- `AVAudioPlayer` (`AudioSimplePlayer`) and `AVAudioRecorder` (`AudioRecorder`) convenience playback/capture APIs.
+- `AVAudioSession`-style session queries with a macOS-friendly compatibility stub.
+- Optional Rust playback-completion callbacks for `AVAudioPlayerNode` scheduling.
+
+See [COVERAGE.md](COVERAGE.md) for the API coverage table.
 
 ## Example
 
@@ -21,8 +28,12 @@ fn main() -> Result<(), AVAudioError> {
 
     let engine = AudioEngine::new()?;
     let player = AudioPlayerNode::new()?;
-    engine.attach_player_node(&player);
-    engine.connect_player_node_to_main_mixer(&player, Some(&format));
+    let environment = AudioEnvironmentNode::new()?;
+
+    engine.attach_node(&player);
+    engine.attach_node(&environment);
+    engine.connect_nodes(&player, &environment, Some(&format));
+    engine.connect_node_to_main_mixer(&environment, Some(&format));
     engine.prepare();
     engine.start()?;
 
@@ -32,13 +43,38 @@ fn main() -> Result<(), AVAudioError> {
 }
 ```
 
+## Examples
+
+The crate ships with a numbered example set:
+
+- `01_smoke_surface`
+- `02_mixer_node`
+- `03_input_output_nodes`
+- `04_environment_node`
+- `05_unit_time_pitch`
+- `06_unit_reverb`
+- `07_unit_eq`
+- `08_converter`
+- `09_simple_player`
+- `10_recorder`
+- `11_session`
+- `12_environment_node_chain`
+- `13_format`
+- `14_player_node`
+- `15_audio_buffer`
+- `16_unit_effect`
+- `17_pcm_buffer`
+- `18_input_node`
+- `19_output_node`
+- `20_audio_file`
+
+Examples that require playback or capture hardware print a skip message and still exit successfully on headless hosts.
+
 ## Smoke test
 
 ```bash
-cargo run --all-features --example 01_smoke_surface
+cargo run --example 01_smoke_surface
 ```
-
-The smoke example only reads an AIFF file and plays a tiny buffer through the default output device. It does not access the microphone or request capture permissions.
 
 ## License
 
