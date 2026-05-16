@@ -7,12 +7,13 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
 `avaudio` now covers the core pieces needed to build and inspect `AVFoundation` audio graphs from Rust:
 
 - `AVAudioEngine` graph creation, preparation, start/stop/reset, and generic node attach/connect helpers.
-- `AVAudioPlayerNode`, `AVAudioMixerNode`, `AVAudioInputNode`, `AVAudioOutputNode`, and `AVAudioEnvironmentNode` wrappers.
-- `AVAudioFile`, `AVAudioPCMBuffer`, `AVAudioBuffer`, `AVAudioFormat`, and `AVAudioConverter` support.
-- `AVAudioUnitTimePitch`, `AVAudioUnitReverb`, `AVAudioUnitEQ`, and shared audio-unit bypass helpers.
+- `AVAudioPlayerNode`, `AVAudioMixerNode`, `AVAudioInputNode`, `AVAudioOutputNode`, `AVAudioEnvironmentNode`, `AVAudioSourceNode`, and `AVAudioSinkNode` wrappers.
+- `AVAudioFile`, `AVAudioPCMBuffer`, `AVAudioBuffer`, `AVAudioFormat`, `AVAudioConverter`, and `AVAudioSequencer` support.
+- `AVAudioUnitTimePitch`, `AVAudioUnitReverb`, `AVAudioUnitEQ`, `AVAudioUnitDelay`, `AVAudioUnitDistortion`, `AVAudioUnitSampler`, `AVAudioUnitVarispeed`, and shared audio-unit bypass helpers.
 - `AVAudioPlayer` (`AudioSimplePlayer`) and `AVAudioRecorder` (`AudioRecorder`) convenience playback/capture APIs.
+- `AVAudioApplication` permission/input-mute queries and `AVAudioUnitComponentManager` discovery snapshots/constants.
 - `AVAudioSession`-style session queries with a macOS-friendly compatibility stub.
-- Optional Rust playback-completion callbacks for `AVAudioPlayerNode` scheduling.
+- Optional Rust callbacks for `AVAudioPlayerNode`, `AVAudioSourceNode`, `AVAudioSinkNode`, and `AVAudioSequencer` blocks.
 
 See [COVERAGE.md](COVERAGE.md) for the API coverage table.
 
@@ -67,6 +68,11 @@ The crate ships with a numbered example set:
 - `18_input_node`
 - `19_output_node`
 - `20_audio_file`
+- `21_audio_application`
+- `22_source_sink_nodes`
+- `23_sequencer`
+- `24_unit_component`
+- `25_unit_variants`
 
 Examples that require playback or capture hardware print a skip message and still exit successfully on headless hosts.
 

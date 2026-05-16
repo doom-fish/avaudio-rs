@@ -44,6 +44,10 @@ impl AudioEngine {
         Ok(Self { ptr })
     }
 
+    pub(crate) const fn as_engine_ptr(&self) -> *mut c_void {
+        self.ptr
+    }
+
     pub fn info(&self) -> Result<AudioEngineInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe { ffi::av_audio_engine_info_json(self.ptr, &mut err) };

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Added `AVAudioApplication` record-permission and input-mute wrappers, with the iOS-only microphone-injection permission moved to the audit exemptions.
+- Added `AVAudioSourceNode`, `AVAudioSinkNode`, and `AVAudioSequencer` wrappers, including Rust callback trampolines for render, receiver, and user-event blocks.
+- Added `AVAudioUnitComponentManager` discovery snapshots and standard `AVAudioUnitComponent` type/manufacturer constants.
+- Added wrappers for `AVAudioUnitDelay`, `AVAudioUnitDistortion`, `AVAudioUnitSampler`, and `AVAudioUnitVarispeed`.
+- Expanded the example suite and integration tests, and refreshed the API coverage documentation.
+
 ## 0.2.0
 
 - Added generic `AVAudioEngine` node attach/connect helpers and engine accessors for mixer/input/output nodes.

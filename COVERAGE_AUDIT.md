@@ -1,10 +1,10 @@
 # avaudio-rs coverage audit (vs MacOSX26.2.sdk)
 
 SDK_PUBLIC_SYMBOLS: 125
-VERIFIED: 30
-GAPS: 95
-EXEMPT: 0
-COVERAGE_PCT: 24.00%
+VERIFIED: 57
+GAPS: 67
+EXEMPT: 1
+COVERAGE_PCT: 45.60%
 
 Audit scope: top-level `AVAudio*` declarations in `AVFAudio.framework` headers (classes, protocols, enums/options, typedefs, constants, and helper functions), not per-method coverage.
 Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set still includes standalone `AVAudioSession*` types that Apple leaves header-visible in the macOS SDK without `API_UNAVAILABLE(macos)` annotations.
@@ -14,6 +14,8 @@ Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set s
 | --- | --- | --- | --- |
 | `AVAudio3DAngularOrientation` | typealias | `AVAudioTypes.h` | AudioEnvironmentNode::{listener_orientation, set_listener_orientation} + AudioListenerOrientation |
 | `AVAudio3DPoint` | typealias | `AVAudioTypes.h` | AudioEnvironmentNode::{listener_position, set_listener_position} + AudioListenerPosition |
+| `AVAudioApplication` | class | `AVAudioApplication.h` | `AudioApplication::{shared, input_muted, set_input_muted, record_permission, request_record_permission}` |
+| `AVAudioApplicationRecordPermission` | enum | `AVAudioApplication.h` | `AudioApplication::record_permission() + AudioApplicationRecordPermission` |
 | `AVAudioBuffer` | class | `AVAudioBuffer.h` | AudioBufferHandle, AudioBufferInfo |
 | `AVAudioCommonFormat` | enum | `AVAudioFormat.h` | AudioCommonFormat, AudioFormat::common_format() |
 | `AVAudioConverter` | class | `AVAudioConverter.h` | AudioConverter |
@@ -33,15 +35,40 @@ Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set s
 | `AVAudioPlayer` | class | `AVAudioPlayer.h` | AudioSimplePlayer |
 | `AVAudioPlayerNode` | class | `AVAudioPlayerNode.h` | AudioPlayerNode |
 | `AVAudioRecorder` | class | `AVAudioRecorder.h` | AudioRecorder |
+| `AVAudioSequencer` | class | `AVAudioSequencer.h` | `AudioSequencer` |
+| `AVAudioSequencerUserCallback` | block | `AVAudioSequencer.h` | `AudioSequencer::{set_user_callback, clear_user_callback} + AudioSequencerUserEvent` |
+| `AVAudioSinkNode` | class | `AVAudioSinkNode.h` | `AudioSinkNode` |
+| `AVAudioSinkNodeReceiverBlock` | block | `AVAudioSinkNode.h` | `AudioSinkNode::new() + AudioSinkRenderContext` |
+| `AVAudioSourceNode` | class | `AVAudioSourceNode.h` | `AudioSourceNode` |
+| `AVAudioSourceNodeRenderBlock` | block | `AVAudioSourceNode.h` | `AudioSourceNode::{new, new_with_format} + AudioSourceRenderContext` |
 | `AVAudioUnit` | class | `AVAudioUnit.h` | AudioUnitHandle + AudioUnitInfo |
+| `AVAudioUnitComponent` | class | `AVAudioUnitComponent.h` | `AudioUnitComponentInfo + AudioUnitComponentManager::components()` |
+| `AVAudioUnitComponentManager` | class | `AVAudioUnitComponent.h` | `AudioUnitComponentManager` |
+| `AVAudioUnitComponentTagsDidChangeNotification` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitDelay` | class | `AVAudioUnitDelay.h` | `AudioUnitDelay` |
+| `AVAudioUnitDistortion` | class | `AVAudioUnitDistortion.h` | `AudioUnitDistortion` |
+| `AVAudioUnitDistortionPreset` | enum | `AVAudioUnitDistortion.h` | `AudioUnitDistortionPreset + AudioUnitDistortion::load_factory_preset()` |
 | `AVAudioUnitEQ` | class | `AVAudioUnitEQ.h` | AudioUnitEQ |
 | `AVAudioUnitEQFilterParameters` | class | `AVAudioUnitEQ.h` | AudioUnitEQ::{band_info, set_band_params} |
 | `AVAudioUnitEQFilterType` | enum | `AVAudioUnitEQ.h` | AudioEQBandInfo.filter_type / AudioEQBandParams.filter_type |
 | `AVAudioUnitEffect` | class | `AVAudioUnitEffect.h` | AudioUnitHandle::bypass() on AudioUnitEQ / AudioUnitReverb (partial) |
+| `AVAudioUnitManufacturerNameApple` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
 | `AVAudioUnitReverb` | class | `AVAudioUnitReverb.h` | AudioUnitReverb |
 | `AVAudioUnitReverbPreset` | enum | `AVAudioUnitReverb.h` | AudioUnitReverbPreset |
+| `AVAudioUnitSampler` | class | `AVAudioUnitSampler.h` | `AudioUnitSampler` |
 | `AVAudioUnitTimeEffect` | class | `AVAudioUnitTimeEffect.h` | AudioUnitHandle::bypass() on AudioUnitTimePitch (partial) |
 | `AVAudioUnitTimePitch` | class | `AVAudioUnitTimePitch.h` | AudioUnitTimePitch |
+| `AVAudioUnitTypeEffect` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeFormatConverter` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeGenerator` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeMIDIProcessor` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeMixer` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeMusicDevice` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeMusicEffect` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeOfflineEffect` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypeOutput` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitTypePanner` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
+| `AVAudioUnitVarispeed` | class | `AVAudioUnitVarispeed.h` | `AudioUnitVarispeed` |
 
 ## 🔴 GAPS
 | Symbol | Kind | Header | Notes |
@@ -52,9 +79,6 @@ Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set s
 | `AVAudio3DMixingSourceMode` | enum | `AVAudioMixing.h` | No protocol-level mixing abstraction in the public Rust API. |
 | `AVAudio3DVector` | typealias | `AVAudioTypes.h` | 3D helper vector/function is not wrapped. |
 | `AVAudio3DVectorOrientation` | typealias | `AVAudioTypes.h` | 3D helper vector/function is not wrapped. |
-| `AVAudioApplication` | class | `AVAudioApplication.h` | No wrapper for application-level permission or input-mute APIs. |
-| `AVAudioApplicationMicrophoneInjectionPermission` | enum | `AVAudioApplication.h` | No wrapper for application-level permission or input-mute APIs. |
-| `AVAudioApplicationRecordPermission` | enum | `AVAudioApplication.h` | No wrapper for application-level permission or input-mute APIs. |
 | `AVAudioBitRateStrategy` | constant | `AVAudioSettings.h` | No public Rust wrapper or matching Swift bridge thunk. |
 | `AVAudioBitRateStrategy_Constant` | constant | `AVAudioSettings.h` | No public Rust wrapper or matching Swift bridge thunk. |
 | `AVAudioBitRateStrategy_LongTermAverage` | constant | `AVAudioSettings.h` | No public Rust wrapper or matching Swift bridge thunk. |
@@ -94,8 +118,6 @@ Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set s
 | `AVAudioRecorderDelegate` | protocol | `AVAudioRecorder.h` | Delegate protocol is not bridged. |
 | `AVAudioRoutingArbiter` | class | `AVAudioRoutingArbiter.h` | No wrapper for routing-arbitration APIs. |
 | `AVAudioRoutingArbitrationCategory` | enum | `AVAudioRoutingArbiter.h` | No wrapper for routing-arbitration APIs. |
-| `AVAudioSequencer` | class | `AVAudioSequencer.h` | No wrapper for sequencing or timeline APIs. |
-| `AVAudioSequencerUserCallback` | block | `AVAudioSequencer.h` | No wrapper for sequencing or timeline APIs. |
 | `AVAudioSessionActivationOptions` | enum | `AVAudioSessionTypes.h` | No public Rust wrapper; this standalone session symbol remains header-visible in the macOS SDK. |
 | `AVAudioSessionAnchoringStrategy` | enum | `AVAudioSessionTypes.h` | No public Rust wrapper; this standalone session symbol remains header-visible in the macOS SDK. |
 | `AVAudioSessionCapability` | class | `AVAudioSessionRoute.h` | No public Rust wrapper; this standalone session symbol remains header-visible in the macOS SDK. |
@@ -110,34 +132,11 @@ Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set s
 | `AVAudioSessionSilenceSecondaryAudioHintType` | enum | `AVAudioSessionTypes.h` | No public Rust wrapper; this standalone session symbol remains header-visible in the macOS SDK. |
 | `AVAudioSessionSoundStageSize` | enum | `AVAudioSessionTypes.h` | No public Rust wrapper; this standalone session symbol remains header-visible in the macOS SDK. |
 | `AVAudioSessionSpatialExperience` | enum | `AVAudioSessionTypes.h` | No public Rust wrapper; this standalone session symbol remains header-visible in the macOS SDK. |
-| `AVAudioSinkNode` | class | `AVAudioSinkNode.h` | No wrapper for custom render-block nodes. |
-| `AVAudioSinkNodeReceiverBlock` | block | `AVAudioSinkNode.h` | No wrapper for custom render-block nodes. |
-| `AVAudioSourceNode` | class | `AVAudioSourceNode.h` | No wrapper for custom render-block nodes. |
-| `AVAudioSourceNodeRenderBlock` | block | `AVAudioSourceNode.h` | No wrapper for custom render-block nodes. |
 | `AVAudioStereoMixing` | protocol | `AVAudioMixing.h` | No protocol-level mixing abstraction in the public Rust API. |
 | `AVAudioStereoOrientation` | enum | `AVAudioSessionTypes.h` | No public Rust wrapper or matching Swift bridge thunk. |
 | `AVAudioTime` | class | `AVAudioTime.h` | Foundational helper type is not wrapped yet. |
-| `AVAudioUnitComponent` | class | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitComponentManager` | class | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitComponentTagsDidChangeNotification` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitDelay` | class | `AVAudioUnitDelay.h` | No public Rust wrapper for this audio-unit subtype. |
-| `AVAudioUnitDistortion` | class | `AVAudioUnitDistortion.h` | No public Rust wrapper for this audio-unit subtype. |
-| `AVAudioUnitDistortionPreset` | enum | `AVAudioUnitDistortion.h` | No public Rust wrapper for this audio-unit subtype. |
 | `AVAudioUnitGenerator` | class | `AVAudioUnitGenerator.h` | No public Rust wrapper for this audio-unit subtype. |
 | `AVAudioUnitMIDIInstrument` | class | `AVAudioUnitMIDIInstrument.h` | No public Rust wrapper for this audio-unit subtype. |
-| `AVAudioUnitManufacturerNameApple` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitSampler` | class | `AVAudioUnitSampler.h` | No public Rust wrapper for this audio-unit subtype. |
-| `AVAudioUnitTypeEffect` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeFormatConverter` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeGenerator` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeMIDIProcessor` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeMixer` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeMusicDevice` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeMusicEffect` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeOfflineEffect` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypeOutput` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitTypePanner` | constant | `AVAudioUnitComponent.h` | No wrapper for audio-unit discovery or component management. |
-| `AVAudioUnitVarispeed` | class | `AVAudioUnitVarispeed.h` | No public Rust wrapper for this audio-unit subtype. |
 | `AVAudioVoiceProcessingOtherAudioDuckingConfiguration` | struct | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
 | `AVAudioVoiceProcessingOtherAudioDuckingLevel` | enum | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
 | `AVAudioVoiceProcessingSpeechActivityEvent` | enum | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
@@ -145,5 +144,5 @@ Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set s
 ## ⏭️ EXEMPT
 | Symbol | Kind | Header | Reason | SDK attribute |
 | --- | --- | --- | --- | --- |
-| _None_ | - | - | No macOS-deprecated top-level AVAudio* symbols remained after filtering. | - |
+| `AVAudioApplicationMicrophoneInjectionPermission` | enum | `AVAudioApplication.h` | iOS / visionOS-only permission surface; the associated property and request API are `API_UNAVAILABLE(macos)`. | `AVAudioApplication.h:123-134 API_UNAVAILABLE(macos)` |
 

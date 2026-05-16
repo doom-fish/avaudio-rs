@@ -1,6 +1,6 @@
 [package]
 name = "avaudio"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/avaudio-rs"
@@ -112,6 +112,21 @@ name = "19_output_node"
 
 [[example]]
 name = "20_audio_file"
+
+[[example]]
+name = "21_audio_application"
+
+[[example]]
+name = "22_source_sink_nodes"
+
+[[example]]
+name = "23_sequencer"
+
+[[example]]
+name = "24_unit_component"
+
+[[example]]
+name = "25_unit_variants"
 
 [profile.release]
 debug = "full"

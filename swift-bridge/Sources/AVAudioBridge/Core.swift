@@ -12,6 +12,27 @@ let AVA_OPERATION_FAILED: Int32 = -7
 
 public typealias AVASimpleCallback = @convention(c) (UnsafeMutableRawPointer?) -> Void
 public typealias AVADropCallback = @convention(c) (UnsafeMutableRawPointer?) -> Void
+public typealias AVABoolCallback = @convention(c) (UnsafeMutableRawPointer?, Bool) -> Void
+public typealias AVASourceNodeRenderCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutablePointer<Bool>?,
+    UnsafeRawPointer?,
+    UInt32,
+    UnsafeMutableRawPointer?
+) -> Int32
+public typealias AVASinkNodeReceiverCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeRawPointer?,
+    UInt32,
+    UnsafeRawPointer?
+) -> Int32
+public typealias AVASequencerUserCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutableRawPointer?,
+    UnsafePointer<UInt8>?,
+    Int,
+    Double
+) -> Void
 
 @_cdecl("ava_string_free")
 public func ava_string_free(_ str: UnsafeMutablePointer<CChar>?) {

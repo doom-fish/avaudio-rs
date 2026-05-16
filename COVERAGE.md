@@ -123,6 +123,79 @@
 | `AVAudioSession.sharedInstance().isOtherAudioPlaying` | ✅ | macOS stub returns `false` |
 | Category / mode / activation APIs | ⏭️ | iOS-only API surface |
 
+## AVAudioApplication
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioApplication.shared` | ✅ | `AudioApplication::shared()` |
+| `isInputMuted` | ✅ | `AudioApplication::input_muted()` |
+| `setInputMuted(_:)` | ✅ | `AudioApplication::set_input_muted()` (host apps may need Apple\'s mute handler) |
+| `recordPermission` | ✅ | `AudioApplicationRecordPermission` |
+| `requestRecordPermission` | ✅ | Rust bool-callback trampoline |
+| Microphone-injection permission | ⏭️ | iOS / visionOS only; unavailable on macOS |
+
+## AVAudioSourceNode
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioSourceNode.init(renderBlock:)` | ✅ | `AudioSourceNode::new()` |
+| `AVAudioSourceNode.init(format:renderBlock:)` | ✅ | `AudioSourceNode::new_with_format()` |
+| Render block | ✅ | `AudioSourceRenderContext` callback |
+| Use in engine graphs | ✅ | Implements `AudioNodeHandle` |
+
+## AVAudioSinkNode
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioSinkNode.init(receiverBlock:)` | ✅ | `AudioSinkNode::new()` |
+| Receiver block | ✅ | `AudioSinkRenderContext` callback |
+| Use in engine graphs | ✅ | Implements `AudioNodeHandle` |
+
+## AVAudioSequencer
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioSequencer.init(audioEngine:)` | ✅ | `AudioSequencer::with_engine()` |
+| `load(from:options:)` | ✅ | `AudioSequencer::load_from_path()` |
+| `currentPositionInSeconds` / `currentPositionInBeats` | ✅ | Getter/setter wrappers |
+| `rate` / `isPlaying` | ✅ | Direct wrappers |
+| `secondsForBeats(_:)` / `beatsForSeconds(_:)` | ✅ | Direct wrappers |
+| `prepareToPlay()` / `start()` / `stop()` | ✅ | Direct wrappers |
+| `reverseEvents()` | ✅ | `AudioSequencer::reverse_events()` |
+| `setUserCallback(_:)` | ✅ | `AudioSequencerUserEvent` callback |
+
+## AVAudioUnitComponentManager / AVAudioUnitComponent
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `sharedAudioUnitComponentManager` | ✅ | `AudioUnitComponentManager::shared()` |
+| `tagNames` / `standardLocalizedTagNames` | ✅ | JSON-backed vectors |
+| Component discovery | ✅ | `components()` returns `AudioUnitComponentInfo` snapshots |
+| Standard type/manufacturer constants | ✅ | `AudioUnitComponentConstants` |
+| Tag-change notification constant | ✅ | `AudioUnitComponentConstants::tags_did_change_notification` |
+
+## AVAudioUnitDelay
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioUnitDelay.init()` | ✅ | `AudioUnitDelay::new()` |
+| `delayTime` / `feedback` / `lowPassCutoff` / `wetDryMix` | ✅ | Getter/setter wrappers |
+
+## AVAudioUnitDistortion
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioUnitDistortion.init()` | ✅ | `AudioUnitDistortion::new()` |
+| `preGain` / `wetDryMix` | ✅ | Getter/setter wrappers |
+| `loadFactoryPreset(_:)` | ✅ | `AudioUnitDistortionPreset` enum |
+
+## AVAudioUnitSampler
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioUnitSampler.init()` | ✅ | `AudioUnitSampler::new()` |
+| `loadInstrument(at:)` | ✅ | `AudioUnitSampler::load_instrument()` |
+| `loadSoundBankInstrument(at:program:bankMSB:bankLSB:)` | ✅ | `AudioUnitSampler::load_sound_bank_instrument()` |
+| `stereoPan` / `overallGain` / `globalTuning` | ✅ | Getter/setter wrappers |
+
+## AVAudioUnitVarispeed
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioUnitVarispeed.init()` | ✅ | `AudioUnitVarispeed::new()` |
+| `rate` | ✅ | Getter/setter wrappers |
+
 ## AVAudioBuffer
 | Symbol | Status | Notes |
 |--------|--------|-------|
