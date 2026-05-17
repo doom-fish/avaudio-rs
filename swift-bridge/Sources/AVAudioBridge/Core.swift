@@ -33,11 +33,25 @@ public typealias AVASequencerUserCallback = @convention(c) (
     Int,
     Double
 ) -> Void
+public typealias AVAMusicTrackEnumerationCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafePointer<CChar>?,
+    Double,
+    UnsafeMutablePointer<Double>?,
+    UnsafeMutablePointer<Bool>?,
+    UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32
 
 @_cdecl("ava_string_free")
 public func ava_string_free(_ str: UnsafeMutablePointer<CChar>?) {
     guard let str else { return }
     free(str)
+}
+
+@_cdecl("ava_buffer_free")
+public func ava_buffer_free(_ ptr: UnsafeMutableRawPointer?) {
+    guard let ptr else { return }
+    free(ptr)
 }
 
 @_cdecl("av_audio_node_release")

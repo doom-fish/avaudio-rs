@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let artifacts = support::artifacts_dir()?;
     let sample_path = artifacts.join("example-sampler.aiff");
     support::make_test_audio(&sample_path)?;
-    sampler.load_instrument(&sample_path)?;
+    sampler.load_audio_files(std::slice::from_ref(&sample_path))?;
     sampler.set_overall_gain(2.0);
 
     let varispeed = AudioUnitVarispeed::new()?;

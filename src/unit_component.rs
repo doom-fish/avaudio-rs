@@ -15,6 +15,7 @@ use serde::Deserialize;
 
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
+use crate::unit::AudioComponentDescription;
 use crate::util::parse_json_and_free;
 
 /// Metadata about an installed audio-unit component.
@@ -23,6 +24,8 @@ use crate::util::parse_json_and_free;
 pub struct AudioUnitComponentInfo {
     /// Component display name.
     pub name: String,
+    /// Raw component description.
+    pub component_description: AudioComponentDescription,
     /// Standard component type name.
     pub type_name: String,
     /// Localized display name for the component type.

@@ -1,3 +1,4 @@
+import AudioToolbox
 import AVFoundation
 import Foundation
 
@@ -27,6 +28,32 @@ private func av_audio_unit_set_bypass_value(_ unit: AVAudioUnit, _ bypass: Bool)
     if let timeEffect = unit as? AVAudioUnitTimeEffect {
         timeEffect.bypass = bypass
     }
+}
+
+@_cdecl("av_audio_unit_effect_create_with_component_description")
+public func av_audio_unit_effect_create_with_component_description(
+    _ componentType: UInt32,
+    _ componentSubtype: UInt32,
+    _ componentManufacturer: UInt32,
+    _ componentFlags: UInt32,
+    _ componentFlagsMask: UInt32,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    let description = avaAudioComponentDescription(
+        componentType,
+        componentSubtype,
+        componentManufacturer,
+        componentFlags,
+        componentFlagsMask
+    )
+    let unit = AVAudioUnitEffect(audioComponentDescription: description)
+    return Unmanaged.passRetained(unit).toOpaque()
+}
+
+@_cdecl("av_audio_unit_effect_release")
+public func av_audio_unit_effect_release(_ ptr: UnsafeMutableRawPointer?) {
+    guard let ptr else { return }
+    Unmanaged<AVAudioUnitEffect>.fromOpaque(ptr).release()
 }
 
 @_cdecl("av_audio_unit_info_json")

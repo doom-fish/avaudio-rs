@@ -29,6 +29,27 @@ public func av_audio_unit_sampler_load_instrument(
     }
 }
 
+@_cdecl("av_audio_unit_sampler_load_audio_files")
+public func av_audio_unit_sampler_load_audio_files(
+    _ ptr: UnsafeMutableRawPointer,
+    _ pathsPtr: UnsafePointer<UnsafePointer<CChar>?>,
+    _ pathCount: Int,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    let sampler = Unmanaged<AVAudioUnitSampler>.fromOpaque(ptr).takeUnretainedValue()
+    let urls = (0..<pathCount).compactMap { index -> URL? in
+        guard let raw = pathsPtr[index] else { return nil }
+        return URL(fileURLWithPath: String(cString: raw))
+    }
+    do {
+        try sampler.loadAudioFiles(at: urls)
+        return AVA_OK
+    } catch {
+        outError?.pointee = ffiString(error.localizedDescription)
+        return AVA_OPERATION_FAILED
+    }
+}
+
 @_cdecl("av_audio_unit_sampler_load_sound_bank_instrument")
 public func av_audio_unit_sampler_load_sound_bank_instrument(
     _ ptr: UnsafeMutableRawPointer,
@@ -82,6 +103,17 @@ public func av_audio_unit_sampler_set_overall_gain(_ ptr: UnsafeMutableRawPointe
     } else {
         sampler.masterGain = overallGain
     }
+}
+
+@_cdecl("av_audio_unit_sampler_get_master_gain")
+public func av_audio_unit_sampler_get_master_gain(_ ptr: UnsafeMutableRawPointer) -> Float {
+    Unmanaged<AVAudioUnitSampler>.fromOpaque(ptr).takeUnretainedValue().masterGain
+}
+
+@_cdecl("av_audio_unit_sampler_set_master_gain")
+public func av_audio_unit_sampler_set_master_gain(_ ptr: UnsafeMutableRawPointer, _ masterGain: Float) {
+    let sampler = Unmanaged<AVAudioUnitSampler>.fromOpaque(ptr).takeUnretainedValue()
+    sampler.masterGain = masterGain
 }
 
 @_cdecl("av_audio_unit_sampler_get_global_tuning")

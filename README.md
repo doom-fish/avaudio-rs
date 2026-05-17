@@ -8,8 +8,9 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
 
 - `AVAudioEngine` graph creation, preparation, start/stop/reset, and generic node attach/connect helpers.
 - `AVAudioPlayerNode`, `AVAudioMixerNode`, `AVAudioInputNode`, `AVAudioOutputNode`, `AVAudioEnvironmentNode`, `AVAudioSourceNode`, and `AVAudioSinkNode` wrappers.
-- `AVAudioFile`, `AVAudioPCMBuffer`, `AVAudioBuffer`, `AVAudioFormat`, `AVAudioConverter`, and `AVAudioSequencer` support.
-- `AVAudioUnitTimePitch`, `AVAudioUnitReverb`, `AVAudioUnitEQ`, `AVAudioUnitDelay`, `AVAudioUnitDistortion`, `AVAudioUnitSampler`, `AVAudioUnitVarispeed`, and shared audio-unit bypass helpers.
+- `AVAudioFile`, `AVAudioPCMBuffer`, `AVAudioBuffer`, `AVAudioFormat`, `AVAudioConverter`, and `AVAudioSequencer` support, including sequencer data/file round-tripping plus `AVMusicTrack` event editing helpers.
+- Generic `AVAudioUnit`, `AVAudioUnitEffect`, `AVAudioUnitTimeEffect`, `AVAudioUnitGenerator`, `AVAudioUnitMIDIInstrument`, `AVAudioUnitTimePitch`, `AVAudioUnitReverb`, `AVAudioUnitEQ`, `AVAudioUnitDelay`, `AVAudioUnitDistortion`, `AVAudioUnitSampler`, `AVAudioUnitVarispeed`, and shared audio-unit bypass/metadata helpers.
+- Public Rust mirrors for core `AVAudioTypes.h`, `AVAudioMixing.h`, `AVAudioSettings.h`, and `AVAudioSessionTypes.h` enums, option sets, typealiases, and constants.
 - `AVAudioPlayer` (`AudioSimplePlayer`) and `AVAudioRecorder` (`AudioRecorder`) convenience playback/capture APIs.
 - `AVAudioApplication` permission/input-mute queries and `AVAudioUnitComponentManager` discovery snapshots/constants.
 - `AVAudioSession`-style session queries with a macOS-friendly compatibility stub.

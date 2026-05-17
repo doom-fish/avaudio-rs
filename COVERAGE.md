@@ -56,13 +56,21 @@
 | `distanceAttenuationParameters` | ✅ | Exposed as `AudioDistanceAttenuation` |
 | `reverbParameters.level` | ✅ | `set_reverb_blend()` / `reverb_blend()` |
 
-## AVAudioUnitEffect / AVAudioUnit-backed nodes
+## AVAudioUnit / AVAudioUnitEffect / subtype families
 | Symbol | Status | Notes |
 |--------|--------|-------|
+| `AVAudioUnit.instantiate(with:options:completionHandler:)` | ✅ | `AudioUnit::instantiate()` |
+| `AVAudioUnit.auAudioUnit` | ✅ | `AudioUnit::au_audio_unit()` / `AUAudioUnitHandle` |
+| `AVAudioUnit.auAudioUnitPreset` loading | ✅ | `AudioUnitHandle::load_preset_at_path()` |
+| Component description / manufacturer metadata | ✅ | `AudioComponentDescription`, `AudioUnitMetadata`, `AudioUnitComponentInfo` |
 | Common node handle support | ✅ | `AudioUnitHandle` trait |
 | Generic engine attachment | ✅ | All units also implement `AudioNodeHandle` |
 | `bypass` | ✅ | `AudioUnitHandle::bypass()` / `set_bypass()` |
 | Shared effect/time-effect state | ✅ | `AudioUnitHandle::unit_info()` |
+| Generic `AVAudioUnitEffect` | ✅ | `AudioUnitEffect::with_component_description()` |
+| Generic `AVAudioUnitTimeEffect` | ✅ | `AudioUnitTimeEffect::with_component_description()` |
+| Generic `AVAudioUnitGenerator` | ✅ | `AudioUnitGenerator::with_component_description()` |
+| Generic `AVAudioUnitMIDIInstrument` | ✅ | `AudioUnitMIDIInstrument::with_component_description()` |
 
 ## AVAudioUnitTimePitch
 | Symbol | Status | Notes |
@@ -152,13 +160,29 @@
 | Symbol | Status | Notes |
 |--------|--------|-------|
 | `AVAudioSequencer.init(audioEngine:)` | ✅ | `AudioSequencer::with_engine()` |
-| `load(from:options:)` | ✅ | `AudioSequencer::load_from_path()` |
+| `load(from:options:)` / `load(from:data:options:)` | ✅ | `load_from_path_with_options()` / `load_from_data_with_options()` |
+| `write(to:smpteResolution:replaceExisting:)` | ✅ | `AudioSequencer::write_to_path()` |
+| `data(withSMPTEResolution:error:)` | ✅ | `AudioSequencer::data_with_smpte_resolution()` |
+| `tracks` / `tempoTrack` / `createAndAppendTrack()` / `removeTrack(_:)` | ✅ | `track_at_index()`, `tracks()`, `tempo_track()`, `create_and_append_track()`, `remove_track()` |
+| `userInfo` / `AVAudioSequencer.InfoDictionaryKey` | ✅ | `user_info()` + `AudioSequencerInfoDictionaryKeys` |
 | `currentPositionInSeconds` / `currentPositionInBeats` | ✅ | Getter/setter wrappers |
 | `rate` / `isPlaying` | ✅ | Direct wrappers |
 | `secondsForBeats(_:)` / `beatsForSeconds(_:)` | ✅ | Direct wrappers |
+| `hostTime(forBeats:error:)` / `beats(forHostTime:error:)` | ✅ | `host_time_for_beats()` / `beats_for_host_time()` |
 | `prepareToPlay()` / `start()` / `stop()` | ✅ | Direct wrappers |
 | `reverseEvents()` | ✅ | `AudioSequencer::reverse_events()` |
 | `setUserCallback(_:)` | ✅ | `AudioSequencerUserEvent` callback |
+
+## AVMusicTrack / AVMusicEvent subclasses
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| Track snapshots and loop/mute/solo/length editing | ✅ | `MusicTrack`, `MusicTrackInfo`, `BeatRange` |
+| Destination audio unit routing | ✅ | `destination_audio_unit()` / `set_destination_audio_unit()` |
+| `addEvent(_:at:)` | ✅ | `MusicTrack::add_event()` with `MusicEvent` subclasses |
+| `moveEvents` / `clearEvents` / `cutEvents` | ✅ | Direct wrappers |
+| `copyEvents` / `copyAndMergeEvents` | ✅ | Direct wrappers |
+| `enumerateEvents(in:)` | ✅ | `enumerate_events_in_range()` / `events_in_range()` |
+| MIDI / tempo / AU preset / user events | ✅ | `MusicEvent` enum + concrete event structs |
 
 ## AVAudioUnitComponentManager / AVAudioUnitComponent
 | Symbol | Status | Notes |
@@ -187,8 +211,11 @@
 |--------|--------|-------|
 | `AVAudioUnitSampler.init()` | ✅ | `AudioUnitSampler::new()` |
 | `loadInstrument(at:)` | ✅ | `AudioUnitSampler::load_instrument()` |
+| `loadAudioFiles(at:)` | ✅ | `AudioUnitSampler::load_audio_files()` |
 | `loadSoundBankInstrument(at:program:bankMSB:bankLSB:)` | ✅ | `AudioUnitSampler::load_sound_bank_instrument()` |
 | `stereoPan` / `overallGain` / `globalTuning` | ✅ | Getter/setter wrappers |
+| `masterGain` | ✅ | Getter/setter wrapper for the deprecated API |
+| Shared MIDI-instrument send methods | ✅ | `AudioUnitMIDIInstrumentHandle` implementation |
 
 ## AVAudioUnitVarispeed
 | Symbol | Status | Notes |
@@ -221,3 +248,11 @@
 |--------|--------|-------|
 | `AVAudioFormat(commonFormat:sampleRate:channels:interleaved:)` | ✅ | `AudioFormat::standard()` |
 | `commonFormat` / `sampleRate` / `channelCount` / `interleaved` | ✅ | Individual Rust accessors |
+
+## Shared AVAudioTypes / AVAudioSettings / AVAudioSessionTypes mirrors
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| Core numeric typealiases (`AVAudioChannelCount`, `AVAudioFrameCount`, `AVAudioFramePosition`, `AVAudioPacketCount`, `AVAudioNodeBus`) | ✅ | Public Rust type aliases |
+| 3D helper vectors / orientations and mixing enums | ✅ | `Audio3DVector`, `Audio3DVectorOrientation`, `Audio3DMixing*` enums |
+| Settings enums/constants (`AVAudioQuality`, `AVAudioContentSource`, `AVAudioDynamicRangeControlConfiguration`, file/bit-rate keys) | ✅ | `AudioSettingsConstants` + enum mirrors |
+| Session option/enums mirrors | ✅ | `AudioSession*` option sets and enums |

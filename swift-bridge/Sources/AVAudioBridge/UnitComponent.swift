@@ -3,6 +3,7 @@ import Foundation
 
 struct AudioUnitComponentInfoPayload: Codable {
     let name: String
+    let componentDescription: AudioComponentDescriptionPayload
     let typeName: String
     let localizedTypeName: String
     let manufacturerName: String
@@ -41,6 +42,7 @@ private func audioUnitComponentManager() -> AVAudioUnitComponentManager {
 private func encodeComponent(_ component: AVAudioUnitComponent) -> AudioUnitComponentInfoPayload {
     AudioUnitComponentInfoPayload(
         name: component.name,
+        componentDescription: avaAudioComponentDescriptionPayload(component.audioComponentDescription),
         typeName: component.typeName,
         localizedTypeName: component.localizedTypeName,
         manufacturerName: component.manufacturerName,

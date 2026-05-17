@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2
+
+- Added generic `AVAudioUnit`, `AVAudioUnitEffect`, `AVAudioUnitTimeEffect`, `AVAudioUnitGenerator`, and `AVAudioUnitMIDIInstrument` wrappers, plus richer audio-unit metadata/preset/component-description support.
+- Expanded `AVAudioUnitSampler` with audio-file loading, `masterGain`, and the shared MIDI-instrument send APIs.
+- Greatly expanded `AVAudioSequencer` with data/file round-tripping, info-dictionary key access, track creation/removal, tempo-track access, and `AVMusicTrack` event editing/enumeration helpers.
+- Added public Rust mirrors for core `AVAudioTypes.h`, `AVAudioMixing.h`, `AVAudioSettings.h`, and `AVAudioSessionTypes.h` enums/typealiases/constants that were previously missing from the public surface.
+- Added new sequencer/settings smoke tests, refreshed the sequencer example, and updated the unit-variants example to exercise audio-file sampler loading.
+
 ## 0.2.1
 
 - Added `AVAudioApplication` record-permission and input-mute wrappers, with the iOS-only microphone-injection permission moved to the audit exemptions.
