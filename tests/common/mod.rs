@@ -26,3 +26,26 @@ pub fn make_test_audio(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+
+pub fn make_test_compressed_audio(
+    input: &Path,
+    output: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if output.exists() {
+        fs::remove_file(output)?;
+    }
+    let status = Command::new("/usr/bin/afconvert")
+        .args([
+            "-f",
+            "m4af",
+            "-d",
+            "aac",
+            input.to_str().ok_or("non-UTF-8 input path")?,
+            output.to_str().ok_or("non-UTF-8 output path")?,
+        ])
+        .status()?;
+    if !status.success() {
+        return Err(format!("afconvert failed with status {status}").into());
+    }
+    Ok(())
+}

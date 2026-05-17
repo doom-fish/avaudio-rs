@@ -14,6 +14,9 @@
 | `engine.mainMixerNode` | ✅ | `AudioEngine::main_mixer_node()` |
 | `engine.inputNode` | ✅ | `AudioEngine::input_node()` |
 | `engine.outputNode` | ✅ | `AudioEngine::output_node()` |
+| Manual rendering mode / status / format / sample time | ✅ | `AudioEngine::{enable_manual_rendering_mode, manual_rendering_info, manual_rendering_format, manual_rendering_sample_time}` |
+| Offline/manual block rendering | ✅ | `render_offline()` / `manual_rendering_block_render()` |
+| Configuration-change notification | ✅ | `AudioEngine::configuration_change_notification_name()` |
 
 ## AVAudioPlayerNode
 | Symbol | Status | Notes |
@@ -23,7 +26,10 @@
 | `scheduleBuffer(_:)` | ✅ | `AudioPlayerNode::schedule_buffer()` |
 | `scheduleFile(_:)` | ✅ | `AudioPlayerNode::schedule_file()` |
 | Completion handler scheduling | ✅ | Rust closure trampoline |
-| Graph attachment via `AVAudioNode` | ✅ | `AudioNodeHandle` implementation |
+| Buffer options / typed completion callback types | ✅ | `AudioPlayerNodeBufferOptions` + `AudioPlayerNodeCompletionCallbackType` |
+| `scheduleBuffer(_:at:options:)` | ✅ | `schedule_buffer_with_options()` |
+| Typed completion scheduling overloads | ✅ | `schedule_buffer_with_callback_type()` / `schedule_file_with_callback_type()` |
+| Graph attachment via `AVAudioNode` | ✅ | `AudioNodeHandle` + `AudioMixing` implementations |
 
 ## AVAudioMixerNode
 | Symbol | Status | Notes |
@@ -38,14 +44,20 @@
 | `engine.inputNode` | ✅ | `AudioEngine::input_node()` |
 | `outputFormat(forBus:)` | ✅ | `AudioInputNode::output_format()` |
 | `inputFormat(forBus:)` | ✅ | `AudioInputNode::input_format()` |
-| `installTap(onBus:bufferSize:format:block:)` | 🟡 | Scaffold only; tap discards buffers |
+| `installTap(onBus:bufferSize:format:block:)` | ✅ | Scaffold helper installs a no-op tap block |
 | `removeTap(onBus:)` | ✅ | `AudioInputNode::remove_tap()` |
+| Manual-rendering input block | ✅ | `set_manual_rendering_input_pcm_format_scaffold()` / `set_manual_rendering_input_pcm_format_with_callback()` |
+| `presentationLatency` / `voiceProcessingEnabled` | ✅ | Via the shared `AudioIONode` trait |
+| Input voice-processing bypass / AGC / mute | ✅ | Direct getters/setters |
+| Speech-activity listener / ducking configuration | ✅ | Rust callback + `AudioVoiceProcessingOtherAudioDuckingConfiguration` |
+| Mixing / stereo / 3D mixing protocols | ✅ | `AudioMixing`, `AudioStereoMixing`, `Audio3DMixing` trait impls |
 
 ## AVAudioOutputNode
 | Symbol | Status | Notes |
 |--------|--------|-------|
 | `engine.outputNode` | ✅ | `AudioEngine::output_node()` |
 | `outputFormat(forBus:)` | ✅ | `AudioOutputNode::output_format()` |
+| `presentationLatency` / `voiceProcessingEnabled` | ✅ | Via the shared `AudioIONode` trait |
 
 ## AVAudioEnvironmentNode
 | Symbol | Status | Notes |
@@ -101,6 +113,9 @@
 | `AVAudioConverter.init(from:to:)` | ✅ | `AudioConverter::new()` |
 | `convert(to:error:withInputFrom:)` | ✅ | One-shot buffer conversion helper |
 | Converter format inspection | ✅ | `AudioConverter::info()` |
+| Prime method / prime info | ✅ | `prime_method()`, `set_prime_method()`, `prime_info()`, `set_prime_info()` |
+| Input/output status mirrors | ✅ | `AudioConverterInputStatus` + `AudioConverterOutputStatus` |
+| Conversion status reporting | ✅ | `AudioConverter::convert_buffer_status()` |
 
 ## AVAudioPlayer
 | Symbol | Status | Notes |
@@ -111,7 +126,7 @@
 | `duration` / `currentTime` | ✅ | Getter/setter where available |
 | `isPlaying` | ✅ | `AudioSimplePlayer::is_playing()` |
 | `numberOfLoops` | ✅ | Getter/setter |
-| Delegate callbacks | ⏭️ | Not yet bridged |
+| Delegate callbacks | ✅ | `AudioSimplePlayerDelegate` + `set_delegate()` / `clear_delegate()` |
 
 ## AVAudioRecorder
 | Symbol | Status | Notes |
@@ -121,7 +136,7 @@
 | `isRecording` / `currentTime` | ✅ | Direct wrappers |
 | Metering (`isMeteringEnabled`, `updateMeters`, power queries) | ✅ | Exposed on the Rust wrapper |
 | Permission prompts / entitlement handling | 🟡 | Runtime-managed by host app |
-| Delegate callbacks | ⏭️ | Not yet bridged |
+| Delegate callbacks | ✅ | `AudioRecorderDelegate` + `set_delegate()` / `clear_delegate()` |
 
 ## AVAudioSession
 | Symbol | Status | Notes |
@@ -130,6 +145,15 @@
 | `AVAudioSession.sharedInstance().outputVolume` | ✅ | macOS compatibility stub returns `1.0` |
 | `AVAudioSession.sharedInstance().isOtherAudioPlaying` | ✅ | macOS stub returns `false` |
 | Category / mode / activation APIs | ⏭️ | iOS-only API surface |
+
+## AVAudioMixing / routing / helper types
+| Symbol | Status | Notes |
+|--------|--------|-------|
+| `AVAudioMixing` / `AVAudioStereoMixing` / `AVAudio3DMixing` | ✅ | `AudioMixing`, `AudioStereoMixing`, and `Audio3DMixing` traits |
+| `AVAudioMixingDestination` | ✅ | `AudioMixingDestination` + `connection_point()` |
+| `AVAudioRoutingArbiter` | ✅ | `AudioRoutingArbiter::{shared, begin, leave}` |
+| `AVAudioSessionCapability` | ✅ | `AudioSessionCapability` |
+| `AVAudioChannelLayout` / `AVAudioConnectionPoint` / `AVAudioCompressedBuffer` / `AVAudioTime` | ✅ | Public helper wrappers |
 
 ## AVAudioApplication
 | Symbol | Status | Notes |
@@ -228,6 +252,7 @@
 |--------|--------|-------|
 | `format` | ✅ | `PCMBuffer::format()` |
 | `audioBufferList` / `mutableAudioBufferList` inspection | ✅ | `AudioBufferHandle::buffer_info()` |
+| `AVAudioCompressedBuffer` | ✅ | `AudioCompressedBuffer` |
 
 ## AVAudioFile
 | Symbol | Status | Notes |

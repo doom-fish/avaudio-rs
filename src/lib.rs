@@ -4,6 +4,9 @@
 mod application;
 mod audio_file;
 mod buffer;
+mod channel_layout;
+mod compressed_buffer;
+mod connection_point;
 mod converter;
 mod engine;
 mod environment_node;
@@ -13,19 +16,24 @@ mod file;
 mod format;
 mod input_node;
 mod input_output_node;
+mod io_node;
 mod mixer;
+mod mixing;
 mod music_event;
 mod music_track;
 mod node;
 mod settings;
 mod session_types;
+mod time;
 mod types;
 mod output_node;
 mod pcm_buffer;
 mod player;
 mod recorder;
+mod routing_arbiter;
 mod sequencer;
 mod session;
+mod session_capability;
 mod simple_player;
 mod sink_node;
 mod source_node;
@@ -47,15 +55,33 @@ mod util;
 pub use application::{AudioApplication, AudioApplicationRecordPermission};
 pub use audio_file::{AudioFile, AudioFileInfo};
 pub use buffer::{AudioBufferHandle, AudioBufferInfo};
-pub use converter::{AudioConverter, AudioConverterInfo};
-pub use engine::{AudioEngine, AudioEngineInfo};
+pub use channel_layout::{
+    AudioChannelLayout, AudioChannelLayoutInfo, AudioChannelLayoutTag, AUDIO_CHANNEL_LAYOUT_TAG_MONO,
+    AUDIO_CHANNEL_LAYOUT_TAG_STEREO,
+};
+pub use compressed_buffer::{AudioCompressedBuffer, AudioCompressedBufferInfo};
+pub use connection_point::{AudioConnectionPoint, AudioConnectionPointInfo};
+pub use converter::{
+    AudioConverter, AudioConverterInfo, AudioConverterInputStatus, AudioConverterOutputStatus,
+    AudioConverterPrimeInfo, AudioConverterPrimeMethod,
+};
+pub use engine::{
+    AudioEngine, AudioEngineInfo, AudioEngineManualRenderingError,
+    AudioEngineManualRenderingInfo, AudioEngineManualRenderingMode,
+    AudioEngineManualRenderingStatus,
+};
 pub use environment_node::{
     AudioDistanceAttenuation, AudioEnvironmentNode, AudioListenerOrientation, AudioListenerPosition,
 };
 pub use error::AVAudioError;
 pub use format::{AudioCommonFormat, AudioFormat, AudioFormatInfo};
-pub use input_node::AudioInputNode;
+pub use input_node::{AudioInputNode, AudioManualRenderingInput};
+pub use io_node::{
+    AudioIONode, AudioVoiceProcessingOtherAudioDuckingConfiguration,
+    AudioVoiceProcessingOtherAudioDuckingLevel, AudioVoiceProcessingSpeechActivityEvent,
+};
 pub use mixer::AudioMixerNode;
+pub use mixing::{Audio3DMixing, AudioMixing, AudioMixingDestination, AudioStereoMixing};
 pub use music_event::{
     AUPresetEvent, ExtendedNoteOnEvent, ExtendedTempoEvent, MidiChannelPressureEvent,
     MidiControlChangeEvent, MidiControlChangeMessageType, MidiMetaEvent, MidiMetaEventType,
@@ -69,13 +95,18 @@ pub use music_track::{
 pub use node::AudioNodeHandle;
 pub use output_node::AudioOutputNode;
 pub use pcm_buffer::{PCMBuffer, PCMBufferInfo};
-pub use player::{AudioPlayerNode, AudioPlayerNodeInfo};
-pub use recorder::AudioRecorder;
+pub use player::{
+    AudioPlayerNode, AudioPlayerNodeBufferOptions, AudioPlayerNodeCompletionCallbackType,
+    AudioPlayerNodeInfo,
+};
+pub use recorder::{AudioRecorder, AudioRecorderDelegate};
+pub use routing_arbiter::{AudioRoutingArbiter, AudioRoutingArbitrationCategory};
 pub use sequencer::{
     AudioSequencer, AudioSequencerInfo, AudioSequencerInfoDictionaryKeys,
     AudioSequencerUserEvent, MusicSequenceLoadOptions,
 };
 pub use session::AudioSession;
+pub use session_capability::AudioSessionCapability;
 pub use session_types::{
     AudioSessionActivationOptions, AudioSessionAnchoringStrategy, AudioSessionIOType,
     AudioSessionInterruptionOptions, AudioSessionInterruptionType,
@@ -88,7 +119,8 @@ pub use settings::{
     AudioBitRateStrategy, AudioContentSource, AudioDynamicRangeControlConfiguration,
     AudioQuality, AudioSettingsConstants,
 };
-pub use simple_player::AudioSimplePlayer;
+pub use simple_player::{AudioSimplePlayer, AudioSimplePlayerDelegate};
+pub use time::{AudioTime, AudioTimeInfo};
 pub use types::{
     Audio3DMixingPointSourceInHeadMode, Audio3DMixingRenderingAlgorithm,
     Audio3DMixingSourceMode, Audio3DVector, Audio3DVectorOrientation, AudioChannelCount,
@@ -123,16 +155,34 @@ pub mod prelude {
     pub use crate::application::{AudioApplication, AudioApplicationRecordPermission};
     pub use crate::audio_file::{AudioFile, AudioFileInfo};
     pub use crate::buffer::{AudioBufferHandle, AudioBufferInfo};
-    pub use crate::converter::{AudioConverter, AudioConverterInfo};
-    pub use crate::engine::{AudioEngine, AudioEngineInfo};
+    pub use crate::channel_layout::{
+        AudioChannelLayout, AudioChannelLayoutInfo, AudioChannelLayoutTag,
+        AUDIO_CHANNEL_LAYOUT_TAG_MONO, AUDIO_CHANNEL_LAYOUT_TAG_STEREO,
+    };
+    pub use crate::compressed_buffer::{AudioCompressedBuffer, AudioCompressedBufferInfo};
+    pub use crate::connection_point::{AudioConnectionPoint, AudioConnectionPointInfo};
+    pub use crate::converter::{
+        AudioConverter, AudioConverterInfo, AudioConverterInputStatus,
+        AudioConverterOutputStatus, AudioConverterPrimeInfo, AudioConverterPrimeMethod,
+    };
+    pub use crate::engine::{
+        AudioEngine, AudioEngineInfo, AudioEngineManualRenderingError,
+        AudioEngineManualRenderingInfo, AudioEngineManualRenderingMode,
+        AudioEngineManualRenderingStatus,
+    };
     pub use crate::environment_node::{
         AudioDistanceAttenuation, AudioEnvironmentNode, AudioListenerOrientation,
         AudioListenerPosition,
     };
     pub use crate::error::AVAudioError;
     pub use crate::format::{AudioCommonFormat, AudioFormat, AudioFormatInfo};
-    pub use crate::input_node::AudioInputNode;
+    pub use crate::input_node::{AudioInputNode, AudioManualRenderingInput};
+    pub use crate::io_node::{
+        AudioIONode, AudioVoiceProcessingOtherAudioDuckingConfiguration,
+        AudioVoiceProcessingOtherAudioDuckingLevel, AudioVoiceProcessingSpeechActivityEvent,
+    };
     pub use crate::mixer::AudioMixerNode;
+    pub use crate::mixing::{Audio3DMixing, AudioMixing, AudioMixingDestination, AudioStereoMixing};
     pub use crate::music_event::{
         AUPresetEvent, ExtendedNoteOnEvent, ExtendedTempoEvent, MidiChannelPressureEvent,
         MidiControlChangeEvent, MidiControlChangeMessageType, MidiMetaEvent, MidiMetaEventType,
@@ -146,13 +196,18 @@ pub mod prelude {
     pub use crate::node::AudioNodeHandle;
     pub use crate::output_node::AudioOutputNode;
     pub use crate::pcm_buffer::{PCMBuffer, PCMBufferInfo};
-    pub use crate::player::{AudioPlayerNode, AudioPlayerNodeInfo};
-    pub use crate::recorder::AudioRecorder;
+    pub use crate::player::{
+        AudioPlayerNode, AudioPlayerNodeBufferOptions, AudioPlayerNodeCompletionCallbackType,
+        AudioPlayerNodeInfo,
+    };
+    pub use crate::recorder::{AudioRecorder, AudioRecorderDelegate};
+    pub use crate::routing_arbiter::{AudioRoutingArbiter, AudioRoutingArbitrationCategory};
     pub use crate::sequencer::{
         AudioSequencer, AudioSequencerInfo, AudioSequencerInfoDictionaryKeys,
         AudioSequencerUserEvent, MusicSequenceLoadOptions,
     };
     pub use crate::session::AudioSession;
+    pub use crate::session_capability::AudioSessionCapability;
     pub use crate::session_types::{
         AudioSessionActivationOptions, AudioSessionAnchoringStrategy, AudioSessionIOType,
         AudioSessionInterruptionOptions, AudioSessionInterruptionType,
@@ -165,7 +220,8 @@ pub mod prelude {
         AudioBitRateStrategy, AudioContentSource, AudioDynamicRangeControlConfiguration,
         AudioQuality, AudioSettingsConstants,
     };
-    pub use crate::simple_player::AudioSimplePlayer;
+    pub use crate::simple_player::{AudioSimplePlayer, AudioSimplePlayerDelegate};
+    pub use crate::time::{AudioTime, AudioTimeInfo};
     pub use crate::types::{
         Audio3DMixingPointSourceInHeadMode, Audio3DMixingRenderingAlgorithm,
         Audio3DMixingSourceMode, Audio3DVector, Audio3DVectorOrientation, AudioChannelCount,

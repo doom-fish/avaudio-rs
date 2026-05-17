@@ -8,11 +8,50 @@
 
 use core::ffi::{c_char, c_void};
 use core::ptr;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::path::Path;
 
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
+
+/// Callback configuration bridging `AVAudioPlayerDelegate`.
+#[derive(Default)]
+pub struct AudioSimplePlayerDelegate {
+    did_finish_playing: Option<Box<dyn FnMut(bool) + Send + 'static>>,
+    decode_error: Option<Box<dyn FnMut(Option<String>) + Send + 'static>>,
+}
+
+impl AudioSimplePlayerDelegate {
+    /// Creates an empty delegate configuration.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Registers a finish-playing callback.
+    #[must_use]
+    pub fn on_finish_playing<F>(mut self, callback: F) -> Self
+    where
+        F: FnMut(bool) + Send + 'static,
+    {
+        self.did_finish_playing = Some(Box::new(callback));
+        self
+    }
+
+    /// Registers a decode-error callback.
+    #[must_use]
+    pub fn on_decode_error<F>(mut self, callback: F) -> Self
+    where
+        F: FnMut(Option<String>) + Send + 'static,
+    {
+        self.decode_error = Some(Box::new(callback));
+        self
+    }
+}
+
+struct AudioSimplePlayerDelegateState {
+    did_finish_playing: Option<Box<dyn FnMut(bool) + Send + 'static>>,
+    decode_error: Option<Box<dyn FnMut(Option<String>) + Send + 'static>>,
+}
 
 /// Wraps an `AVAudioPlayer` instance.
 pub struct AudioSimplePlayer {
@@ -46,6 +85,36 @@ impl AudioSimplePlayer {
             return Err(unsafe { from_swift(ffi::status::PLAYER_ERROR, err) });
         }
         Ok(Self { ptr })
+    }
+
+    /// Installs delegate callbacks bridging `AVAudioPlayerDelegate`.
+    pub fn set_delegate(&self, delegate: AudioSimplePlayerDelegate) -> Result<(), AVAudioError> {
+        let state = Box::new(AudioSimplePlayerDelegateState {
+            did_finish_playing: delegate.did_finish_playing,
+            decode_error: delegate.decode_error,
+        });
+        let userdata = Box::into_raw(state).cast::<c_void>();
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            ffi::av_audio_simple_player_set_delegate(
+                self.ptr,
+                Some(simple_player_finish_trampoline),
+                Some(simple_player_decode_error_trampoline),
+                userdata,
+                Some(simple_player_delegate_drop),
+                &mut err,
+            )
+        };
+        if status != ffi::status::OK {
+            unsafe { simple_player_delegate_drop(userdata) };
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
+    }
+
+    /// Clears any installed delegate callbacks.
+    pub fn clear_delegate(&self) {
+        unsafe { ffi::av_audio_simple_player_clear_delegate(self.ptr) };
     }
 
     /// Starts playback.
@@ -127,4 +196,41 @@ impl AudioSimplePlayer {
     pub fn prepare_to_play(&self) -> bool {
         unsafe { ffi::av_audio_simple_player_prepare_to_play(self.ptr) }
     }
+}
+
+unsafe extern "C" fn simple_player_finish_trampoline(userdata: *mut c_void, success: bool) {
+    let Some(state) = userdata.cast::<AudioSimplePlayerDelegateState>().as_mut() else {
+        return;
+    };
+    if let Some(callback) = state.did_finish_playing.as_mut() {
+        callback(success);
+    }
+}
+
+unsafe extern "C" fn simple_player_decode_error_trampoline(
+    userdata: *mut c_void,
+    message: *mut c_char,
+) {
+    let Some(state) = userdata.cast::<AudioSimplePlayerDelegateState>().as_mut() else {
+        return;
+    };
+    if let Some(callback) = state.decode_error.as_mut() {
+        let value = if message.is_null() {
+            None
+        } else {
+            let decoded = CStr::from_ptr(message).to_string_lossy().into_owned();
+            unsafe { ffi::ava_string_free(message) };
+            Some(decoded)
+        };
+        callback(value);
+    } else if !message.is_null() {
+        unsafe { ffi::ava_string_free(message) };
+    }
+}
+
+unsafe extern "C" fn simple_player_delegate_drop(userdata: *mut c_void) {
+    if userdata.is_null() {
+        return;
+    }
+    drop(Box::from_raw(userdata.cast::<AudioSimplePlayerDelegateState>()));
 }

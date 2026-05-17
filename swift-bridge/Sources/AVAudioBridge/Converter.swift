@@ -6,6 +6,11 @@ struct ConverterInfoPayload: Codable {
     let outputFormat: AudioFormatInfoPayload
 }
 
+struct ConverterPrimeInfoPayload: Codable {
+    let leadingFrames: UInt32
+    let trailingFrames: UInt32
+}
+
 final class AudioConverterBox {
     let converter: AVAudioConverter
 
@@ -53,6 +58,56 @@ public func av_audio_converter_info_json(
     }
 }
 
+@_cdecl("av_audio_converter_reset")
+public func av_audio_converter_reset(_ ptr: UnsafeMutableRawPointer) {
+    let box = Unmanaged<AudioConverterBox>.fromOpaque(ptr).takeUnretainedValue()
+    box.converter.reset()
+}
+
+@_cdecl("av_audio_converter_get_prime_method")
+public func av_audio_converter_get_prime_method(_ ptr: UnsafeMutableRawPointer) -> Int64 {
+    let box = Unmanaged<AudioConverterBox>.fromOpaque(ptr).takeUnretainedValue()
+    return Int64(box.converter.primeMethod.rawValue)
+}
+
+@_cdecl("av_audio_converter_set_prime_method")
+public func av_audio_converter_set_prime_method(_ ptr: UnsafeMutableRawPointer, _ primeMethodRaw: Int64) {
+    let box = Unmanaged<AudioConverterBox>.fromOpaque(ptr).takeUnretainedValue()
+    guard let primeMethod = AVAudioConverterPrimeMethod(rawValue: Int(primeMethodRaw)) else { return }
+    box.converter.primeMethod = primeMethod
+}
+
+@_cdecl("av_audio_converter_prime_info_json")
+public func av_audio_converter_prime_info_json(
+    _ ptr: UnsafeMutableRawPointer,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutablePointer<CChar>? {
+    let box = Unmanaged<AudioConverterBox>.fromOpaque(ptr).takeUnretainedValue()
+    let payload = ConverterPrimeInfoPayload(
+        leadingFrames: box.converter.primeInfo.leadingFrames,
+        trailingFrames: box.converter.primeInfo.trailingFrames
+    )
+    do {
+        return ffiString(try avaEncodeJSON(payload))
+    } catch {
+        outError?.pointee = ffiString(error.localizedDescription)
+        return nil
+    }
+}
+
+@_cdecl("av_audio_converter_set_prime_info")
+public func av_audio_converter_set_prime_info(
+    _ ptr: UnsafeMutableRawPointer,
+    _ leadingFrames: UInt32,
+    _ trailingFrames: UInt32
+) {
+    let box = Unmanaged<AudioConverterBox>.fromOpaque(ptr).takeUnretainedValue()
+    box.converter.primeInfo = AVAudioConverterPrimeInfo(
+        leadingFrames: leadingFrames,
+        trailingFrames: trailingFrames
+    )
+}
+
 @_cdecl("av_audio_converter_convert_buffer")
 public func av_audio_converter_convert_buffer(
     _ ptr: UnsafeMutableRawPointer,
@@ -60,6 +115,22 @@ public func av_audio_converter_convert_buffer(
     _ outputBufferPtr: UnsafeMutableRawPointer,
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    let rawStatus = av_audio_converter_convert_buffer_with_status(
+        ptr,
+        inputBufferPtr,
+        outputBufferPtr,
+        outError
+    )
+    return rawStatus >= 0 ? AVA_OK : Int32(rawStatus)
+}
+
+@_cdecl("av_audio_converter_convert_buffer_with_status")
+public func av_audio_converter_convert_buffer_with_status(
+    _ ptr: UnsafeMutableRawPointer,
+    _ inputBufferPtr: UnsafeMutableRawPointer,
+    _ outputBufferPtr: UnsafeMutableRawPointer,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int64 {
     let box = Unmanaged<AudioConverterBox>.fromOpaque(ptr).takeUnretainedValue()
     let inputBuffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(inputBufferPtr).takeUnretainedValue()
     let outputBuffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(outputBufferPtr).takeUnretainedValue()
@@ -77,16 +148,7 @@ public func av_audio_converter_convert_buffer(
     }
     if let nsError {
         outError?.pointee = ffiString(nsError.localizedDescription)
-        return AVA_OPERATION_FAILED
+        return Int64(AVA_OPERATION_FAILED)
     }
-    switch status {
-    case .haveData, .inputRanDry, .endOfStream:
-        return AVA_OK
-    case .error:
-        outError?.pointee = ffiString("converter failed without a detailed NSError")
-        return AVA_OPERATION_FAILED
-    @unknown default:
-        outError?.pointee = ffiString("converter returned an unknown output status")
-        return AVA_OPERATION_FAILED
-    }
+    return Int64(status.rawValue)
 }

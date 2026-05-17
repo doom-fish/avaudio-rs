@@ -13,6 +13,9 @@ let AVA_OPERATION_FAILED: Int32 = -7
 public typealias AVASimpleCallback = @convention(c) (UnsafeMutableRawPointer?) -> Void
 public typealias AVADropCallback = @convention(c) (UnsafeMutableRawPointer?) -> Void
 public typealias AVABoolCallback = @convention(c) (UnsafeMutableRawPointer?, Bool) -> Void
+public typealias AVAStringCallback = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutablePointer<CChar>?) -> Void
+public typealias AVAIntCallback = @convention(c) (UnsafeMutableRawPointer?, Int64) -> Void
+public typealias AVAInputNodeInputBlockCallback = @convention(c) (UnsafeMutableRawPointer?, UInt32) -> UnsafeMutableRawPointer?
 public typealias AVASourceNodeRenderCallback = @convention(c) (
     UnsafeMutableRawPointer?,
     UnsafeMutablePointer<Bool>?,

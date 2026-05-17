@@ -5,6 +5,10 @@ use core::ffi::{c_char, c_void};
 pub type SimpleCallback = unsafe extern "C" fn(userdata: *mut c_void);
 pub type DropCallback = unsafe extern "C" fn(userdata: *mut c_void);
 pub type BoolCallback = unsafe extern "C" fn(userdata: *mut c_void, value: bool);
+pub type StringCallback = unsafe extern "C" fn(userdata: *mut c_void, value: *mut c_char);
+pub type IntCallback = unsafe extern "C" fn(userdata: *mut c_void, value: i64);
+pub type InputNodeInputBlockCallback =
+    unsafe extern "C" fn(userdata: *mut c_void, frame_count: u32) -> *mut c_void;
 pub type SourceNodeRenderCallback = unsafe extern "C" fn(
     userdata: *mut c_void,
     is_silence: *mut bool,
@@ -43,6 +47,17 @@ extern "C" {
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
 
+    pub fn av_audio_channel_layout_create_with_layout_tag(
+        layout_tag: u32,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn av_audio_channel_layout_release(layout: *mut c_void);
+    pub fn av_audio_channel_layout_info_json(
+        layout: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+    pub fn av_audio_channel_layout_is_equal(lhs: *mut c_void, rhs: *mut c_void) -> bool;
+
     pub fn av_audio_format_create_standard(
         sample_rate: f64,
         channel_count: u32,
@@ -78,6 +93,28 @@ extern "C" {
         out_error_message: *mut *mut c_char,
     ) -> *mut c_void;
     pub fn av_audio_pcm_buffer_release(buffer: *mut c_void);
+    pub fn av_audio_compressed_buffer_create(
+        format: *mut c_void,
+        packet_capacity: u32,
+        maximum_packet_size: usize,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn av_audio_compressed_buffer_release(buffer: *mut c_void);
+    pub fn av_audio_compressed_buffer_info_json(
+        buffer: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+    pub fn av_audio_compressed_buffer_set_packet_count(
+        buffer: *mut c_void,
+        packet_count: u32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_compressed_buffer_set_byte_length(
+        buffer: *mut c_void,
+        byte_length: u32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_compressed_buffer_copy_format(buffer: *mut c_void) -> *mut c_void;
     pub fn av_audio_pcm_buffer_info_json(
         buffer: *mut c_void,
         out_error_message: *mut *mut c_char,
@@ -89,6 +126,37 @@ extern "C" {
         out_error_message: *mut *mut c_char,
     ) -> i32;
 
+    pub fn av_audio_connection_point_create(
+        node: *mut c_void,
+        bus: usize,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn av_audio_connection_point_release(point: *mut c_void);
+    pub fn av_audio_connection_point_info_json(
+        point: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+
+    pub fn av_audio_time_create_with_host_time(host_time: u64) -> *mut c_void;
+    pub fn av_audio_time_create_with_sample_time(
+        sample_time: i64,
+        sample_rate: f64,
+    ) -> *mut c_void;
+    pub fn av_audio_time_create_with_host_and_sample_time(
+        host_time: u64,
+        sample_time: i64,
+        sample_rate: f64,
+    ) -> *mut c_void;
+    pub fn av_audio_time_release(time: *mut c_void);
+    pub fn av_audio_time_info_json(
+        time: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+    pub fn av_audio_time_extrapolate_from_anchor(time: *mut c_void, anchor: *mut c_void)
+        -> *mut c_void;
+    pub fn av_audio_time_host_time_for_seconds(seconds: f64) -> u64;
+    pub fn av_audio_time_seconds_for_host_time(host_time: u64) -> f64;
+
     pub fn av_audio_engine_create(out_error_message: *mut *mut c_char) -> *mut c_void;
     pub fn av_audio_engine_release(engine: *mut c_void);
     pub fn av_audio_engine_info_json(
@@ -99,6 +167,34 @@ extern "C" {
     pub fn av_audio_engine_start(engine: *mut c_void, out_error_message: *mut *mut c_char) -> i32;
     pub fn av_audio_engine_stop(engine: *mut c_void);
     pub fn av_audio_engine_reset(engine: *mut c_void);
+    pub fn av_audio_engine_enable_manual_rendering_mode(
+        engine: *mut c_void,
+        mode: i64,
+        format: *mut c_void,
+        maximum_frame_count: u32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_engine_disable_manual_rendering_mode(engine: *mut c_void);
+    pub fn av_audio_engine_manual_rendering_info_json(
+        engine: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+    pub fn av_audio_engine_copy_manual_rendering_format(engine: *mut c_void) -> *mut c_void;
+    pub fn av_audio_engine_render_offline(
+        engine: *mut c_void,
+        number_of_frames: u32,
+        buffer: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i64;
+    pub fn av_audio_engine_manual_rendering_block_render(
+        engine: *mut c_void,
+        number_of_frames: u32,
+        buffer: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i64;
+    pub fn av_audio_engine_configuration_change_notification_name(
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
     pub fn av_audio_engine_attach_player_node(engine: *mut c_void, player: *mut c_void);
     pub fn av_audio_engine_connect_player_to_main_mixer(
         engine: *mut c_void,
@@ -155,6 +251,141 @@ extern "C" {
         drop_userdata: Option<DropCallback>,
         out_error_message: *mut *mut c_char,
     ) -> i32;
+    pub fn av_audio_player_node_schedule_buffer_with_options(
+        player: *mut c_void,
+        buffer: *mut c_void,
+        when: *mut c_void,
+        options: u64,
+        callback: Option<SimpleCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_player_node_schedule_buffer_with_callback_type(
+        player: *mut c_void,
+        buffer: *mut c_void,
+        when: *mut c_void,
+        options: u64,
+        callback_type: i64,
+        callback: Option<IntCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_player_node_schedule_file_with_callback_type(
+        player: *mut c_void,
+        file: *mut c_void,
+        when: *mut c_void,
+        callback_type: i64,
+        callback: Option<IntCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+
+    pub fn av_audio_mixing_get_volume(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> f32;
+    pub fn av_audio_mixing_set_volume(
+        mixing: *mut c_void,
+        volume: f32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_mixing_destination_for_mixer(
+        mixing: *mut c_void,
+        mixer: *mut c_void,
+        bus: usize,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn av_audio_mixing_destination_release(destination: *mut c_void);
+    pub fn av_audio_mixing_destination_copy_connection_point(
+        destination: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn av_audio_stereo_mixing_get_pan(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> f32;
+    pub fn av_audio_stereo_mixing_set_pan(
+        mixing: *mut c_void,
+        pan: f32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_rendering_algorithm(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i64;
+    pub fn av_audio_3d_mixing_set_rendering_algorithm(
+        mixing: *mut c_void,
+        rendering_algorithm_raw: i64,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_source_mode(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i64;
+    pub fn av_audio_3d_mixing_set_source_mode(
+        mixing: *mut c_void,
+        source_mode_raw: i64,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_point_source_in_head_mode(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i64;
+    pub fn av_audio_3d_mixing_set_point_source_in_head_mode(
+        mixing: *mut c_void,
+        point_source_in_head_mode_raw: i64,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_rate(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> f32;
+    pub fn av_audio_3d_mixing_set_rate(
+        mixing: *mut c_void,
+        rate: f32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_reverb_blend(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> f32;
+    pub fn av_audio_3d_mixing_set_reverb_blend(
+        mixing: *mut c_void,
+        reverb_blend: f32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_obstruction(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> f32;
+    pub fn av_audio_3d_mixing_set_obstruction(
+        mixing: *mut c_void,
+        obstruction: f32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_occlusion(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> f32;
+    pub fn av_audio_3d_mixing_set_occlusion(
+        mixing: *mut c_void,
+        occlusion: f32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_3d_mixing_get_position_json(
+        mixing: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+    pub fn av_audio_3d_mixing_set_position(
+        mixing: *mut c_void,
+        x: f32,
+        y: f32,
+        z: f32,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
 
     pub fn av_audio_mixer_node_create() -> *mut c_void;
     pub fn av_audio_mixer_node_release(node: *mut c_void);
@@ -179,6 +410,35 @@ extern "C" {
         format: *mut c_void,
     ) -> i32;
     pub fn av_audio_input_node_remove_tap(node: *mut c_void, bus: i32);
+    pub fn av_audio_input_node_set_manual_rendering_input_pcm_format(
+        node: *mut c_void,
+        format: *mut c_void,
+        callback: Option<InputNodeInputBlockCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+    ) -> bool;
+    pub fn av_audio_input_node_get_voice_processing_bypassed(node: *mut c_void) -> bool;
+    pub fn av_audio_input_node_set_voice_processing_bypassed(node: *mut c_void, bypassed: bool);
+    pub fn av_audio_input_node_get_voice_processing_agc_enabled(node: *mut c_void) -> bool;
+    pub fn av_audio_input_node_set_voice_processing_agc_enabled(node: *mut c_void, enabled: bool);
+    pub fn av_audio_input_node_get_voice_processing_input_muted(node: *mut c_void) -> bool;
+    pub fn av_audio_input_node_set_voice_processing_input_muted(node: *mut c_void, muted: bool);
+    pub fn av_audio_input_node_set_muted_speech_activity_event_listener(
+        node: *mut c_void,
+        callback: Option<IntCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+    ) -> bool;
+    pub fn av_audio_input_node_get_other_audio_ducking_configuration_json(
+        node: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+    pub fn av_audio_input_node_set_other_audio_ducking_configuration(
+        node: *mut c_void,
+        enable_advanced_ducking: bool,
+        ducking_level_raw: i64,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
 
     pub fn av_audio_output_node_release(node: *mut c_void);
     pub fn av_audio_output_node_output_format_json(
@@ -186,6 +446,19 @@ extern "C" {
         bus: i32,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
+    pub fn av_audio_io_node_get_presentation_latency(
+        node: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> f64;
+    pub fn av_audio_io_node_is_voice_processing_enabled(
+        node: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> bool;
+    pub fn av_audio_io_node_set_voice_processing_enabled(
+        node: *mut c_void,
+        enabled: bool,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
 
     pub fn av_audio_environment_node_create() -> *mut c_void;
     pub fn av_audio_environment_node_release(node: *mut c_void);
@@ -401,18 +674,45 @@ extern "C" {
         converter: *mut c_void,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
+    pub fn av_audio_converter_reset(converter: *mut c_void);
+    pub fn av_audio_converter_get_prime_method(converter: *mut c_void) -> i64;
+    pub fn av_audio_converter_set_prime_method(converter: *mut c_void, prime_method: i64);
+    pub fn av_audio_converter_prime_info_json(
+        converter: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_char;
+    pub fn av_audio_converter_set_prime_info(
+        converter: *mut c_void,
+        leading_frames: u32,
+        trailing_frames: u32,
+    );
     pub fn av_audio_converter_convert_buffer(
         converter: *mut c_void,
         input_buffer: *mut c_void,
         output_buffer: *mut c_void,
         out_error_message: *mut *mut c_char,
     ) -> i32;
+    pub fn av_audio_converter_convert_buffer_with_status(
+        converter: *mut c_void,
+        input_buffer: *mut c_void,
+        output_buffer: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i64;
 
     pub fn av_audio_simple_player_create_from_path(
         path: *const c_char,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_void;
     pub fn av_audio_simple_player_release(player: *mut c_void);
+    pub fn av_audio_simple_player_set_delegate(
+        player: *mut c_void,
+        finish_callback: Option<BoolCallback>,
+        decode_error_callback: Option<StringCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_simple_player_clear_delegate(player: *mut c_void);
     pub fn av_audio_simple_player_play(player: *mut c_void) -> bool;
     pub fn av_audio_simple_player_pause(player: *mut c_void);
     pub fn av_audio_simple_player_stop(player: *mut c_void);
@@ -438,6 +738,15 @@ extern "C" {
         out_error_message: *mut *mut c_char,
     ) -> *mut c_void;
     pub fn av_audio_recorder_release(recorder: *mut c_void);
+    pub fn av_audio_recorder_set_delegate(
+        recorder: *mut c_void,
+        finish_callback: Option<BoolCallback>,
+        encode_error_callback: Option<StringCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_recorder_clear_delegate(recorder: *mut c_void);
     pub fn av_audio_recorder_record(recorder: *mut c_void) -> bool;
     pub fn av_audio_recorder_stop(recorder: *mut c_void);
     pub fn av_audio_recorder_pause(recorder: *mut c_void);
@@ -448,6 +757,19 @@ extern "C" {
     pub fn av_audio_recorder_average_power(recorder: *mut c_void, channel: i32) -> f32;
     pub fn av_audio_recorder_peak_power(recorder: *mut c_void, channel: i32) -> f32;
     pub fn av_audio_recorder_delete_recording(recorder: *mut c_void) -> bool;
+    pub fn av_audio_session_capability_create() -> *mut c_void;
+    pub fn av_audio_session_capability_release(capability: *mut c_void);
+    pub fn av_audio_session_capability_is_supported(capability: *mut c_void) -> bool;
+    pub fn av_audio_session_capability_is_enabled(capability: *mut c_void) -> bool;
+
+    pub fn av_audio_routing_arbiter_begin(
+        category_raw: i64,
+        result_callback: Option<StringCallback>,
+        userdata: *mut c_void,
+        drop_userdata: Option<DropCallback>,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
+    pub fn av_audio_routing_arbiter_leave();
 
     pub fn av_audio_session_get_sample_rate() -> f64;
     pub fn av_audio_session_get_output_volume() -> f32;

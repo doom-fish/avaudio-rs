@@ -1,8 +1,43 @@
 import AVFoundation
 import Foundation
 
+final class AudioRecorderDelegateBox: NSObject, AVAudioRecorderDelegate {
+    let finishCallback: AVABoolCallback?
+    let encodeErrorCallback: AVAStringCallback?
+    let userData: UnsafeMutableRawPointer?
+    let dropUserData: AVADropCallback?
+
+    init(
+        finishCallback: AVABoolCallback?,
+        encodeErrorCallback: AVAStringCallback?,
+        userData: UnsafeMutableRawPointer?,
+        dropUserData: AVADropCallback?
+    ) {
+        self.finishCallback = finishCallback
+        self.encodeErrorCallback = encodeErrorCallback
+        self.userData = userData
+        self.dropUserData = dropUserData
+    }
+
+    deinit {
+        if let userData, let dropUserData {
+            dropUserData(userData)
+        }
+    }
+
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        finishCallback?(userData, flag)
+    }
+
+    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        let message = error.flatMap { ffiString($0.localizedDescription) }
+        encodeErrorCallback?(userData, message)
+    }
+}
+
 final class AudioRecorderBox {
     var recorder: AVAudioRecorder?
+    var delegateBox: AudioRecorderDelegateBox?
 
     init(url: URL, sampleRate: Double, channels: Int, bitDepth: Int) throws {
         let settings: [String: Any] = [
@@ -44,6 +79,34 @@ public func av_audio_recorder_create(
 public func av_audio_recorder_release(_ ptr: UnsafeMutableRawPointer?) {
     guard let ptr else { return }
     Unmanaged<AudioRecorderBox>.fromOpaque(ptr).release()
+}
+
+@_cdecl("av_audio_recorder_set_delegate")
+public func av_audio_recorder_set_delegate(
+    _ ptr: UnsafeMutableRawPointer,
+    _ finishCallback: AVABoolCallback?,
+    _ encodeErrorCallback: AVAStringCallback?,
+    _ userData: UnsafeMutableRawPointer?,
+    _ dropUserData: AVADropCallback?,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    let box = Unmanaged<AudioRecorderBox>.fromOpaque(ptr).takeUnretainedValue()
+    let delegate = AudioRecorderDelegateBox(
+        finishCallback: finishCallback,
+        encodeErrorCallback: encodeErrorCallback,
+        userData: userData,
+        dropUserData: dropUserData
+    )
+    box.delegateBox = delegate
+    box.recorder?.delegate = delegate
+    return AVA_OK
+}
+
+@_cdecl("av_audio_recorder_clear_delegate")
+public func av_audio_recorder_clear_delegate(_ ptr: UnsafeMutableRawPointer) {
+    let box = Unmanaged<AudioRecorderBox>.fromOpaque(ptr).takeUnretainedValue()
+    box.recorder?.delegate = nil
+    box.delegateBox = nil
 }
 
 @_cdecl("av_audio_recorder_record")

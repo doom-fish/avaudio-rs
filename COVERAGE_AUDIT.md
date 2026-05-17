@@ -1,10 +1,10 @@
 # avaudio-rs coverage audit (vs MacOSX26.2.sdk)
 
 SDK_PUBLIC_SYMBOLS: 125
-VERIFIED: 93
-GAPS: 31
+VERIFIED: 124
+GAPS: 0
 EXEMPT: 1
-COVERAGE_PCT: 75.00%
+COVERAGE_PCT: 100.00%
 
 Audit scope: top-level `AVAudio*` declarations in `AVFAudio.framework` headers (classes, protocols, enums/options, typedefs, constants, and helper functions), not per-method coverage.
 Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set still includes standalone `AVAudioSession*` types that Apple leaves header-visible in the macOS SDK without `API_UNAVAILABLE(macos)` annotations.
@@ -105,41 +105,42 @@ Filtered out 80 symbols explicitly unavailable on macOS. The remaining gap set s
 | `AVAudioUnitTypeOutput` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
 | `AVAudioUnitTypePanner` | constant | `AVAudioUnitComponent.h` | `AudioUnitComponentManager::standard_constants() + AudioUnitComponentConstants` |
 | `AVAudioUnitVarispeed` | class | `AVAudioUnitVarispeed.h` | `AudioUnitVarispeed` |
+| `AVAudio3DMixing` | protocol | `AVAudioMixing.h` | `Audio3DMixing` trait + `AudioPlayerNode` / `AudioInputNode` / `AudioMixingDestination` impls |
+| `AVAudioChannelLayout` | class | `AVAudioChannelLayout.h` | `AudioChannelLayout` |
+| `AVAudioCompressedBuffer` | class | `AVAudioBuffer.h` | `AudioCompressedBuffer` |
+| `AVAudioConnectionPoint` | class | `AVAudioConnectionPoint.h` | `AudioConnectionPoint` |
+| `AVAudioConverterInputStatus` | enum | `AVAudioConverter.h` | `AudioConverterInputStatus` |
+| `AVAudioConverterOutputStatus` | enum | `AVAudioConverter.h` | `AudioConverter::convert_buffer_status() + AudioConverterOutputStatus` |
+| `AVAudioConverterPrimeInfo` | struct | `AVAudioConverter.h` | `AudioConverterPrimeInfo + AudioConverter::{prime_info, set_prime_info}` |
+| `AVAudioConverterPrimeMethod` | enum | `AVAudioConverter.h` | `AudioConverterPrimeMethod + AudioConverter::{prime_method, set_prime_method}` |
+| `AVAudioEngineConfigurationChangeNotification` | constant | `AVAudioEngine.h` | `AudioEngine::configuration_change_notification_name()` |
+| `AVAudioEngineManualRenderingBlock` | block | `AVAudioEngine.h` | `AudioEngine::manual_rendering_block_render()` |
+| `AVAudioEngineManualRenderingError` | enum | `AVAudioEngine.h` | `AudioEngineManualRenderingError` |
+| `AVAudioEngineManualRenderingMode` | enum | `AVAudioEngine.h` | `AudioEngineManualRenderingMode + AudioEngine::enable_manual_rendering_mode()` |
+| `AVAudioEngineManualRenderingStatus` | enum | `AVAudioEngine.h` | `AudioEngineManualRenderingStatus + AudioEngine::{render_offline, manual_rendering_block_render}` |
+| `AVAudioIONode` | class | `AVAudioIONode.h` | `AudioIONode` trait on `AudioInputNode` / `AudioOutputNode` |
+| `AVAudioIONodeInputBlock` | block | `AVAudioIONode.h` | `AudioInputNode::{set_manual_rendering_input_pcm_format_scaffold, set_manual_rendering_input_pcm_format_with_callback}` |
+| `AVAudioMixing` | protocol | `AVAudioMixing.h` | `AudioMixing` trait + `AudioPlayerNode` / `AudioInputNode` / `AudioMixingDestination` impls |
+| `AVAudioMixingDestination` | class | `AVAudioMixing.h` | `AudioMixingDestination` |
+| `AVAudioNodeTapBlock` | block | `AVAudioNode.h` | `AudioInputNode::{install_tap_scaffold, remove_tap}` |
+| `AVAudioPlayerDelegate` | protocol | `AVAudioPlayer.h` | `AudioSimplePlayerDelegate + AudioSimplePlayer::{set_delegate, clear_delegate}` |
+| `AVAudioPlayerNodeBufferOptions` | enum | `AVAudioPlayerNode.h` | `AudioPlayerNodeBufferOptions + AudioPlayerNode::schedule_buffer_with_options()` |
+| `AVAudioPlayerNodeCompletionCallbackType` | enum | `AVAudioPlayerNode.h` | `AudioPlayerNodeCompletionCallbackType + typed-completion scheduling APIs` |
+| `AVAudioPlayerNodeCompletionHandler` | block | `AVAudioPlayerNode.h` | `AudioPlayerNode::{schedule_buffer_with_completion, schedule_file_with_completion}` |
+| `AVAudioRecorderDelegate` | protocol | `AVAudioRecorder.h` | `AudioRecorderDelegate + AudioRecorder::{set_delegate, clear_delegate}` |
+| `AVAudioRoutingArbiter` | class | `AVAudioRoutingArbiter.h` | `AudioRoutingArbiter` |
+| `AVAudioRoutingArbitrationCategory` | enum | `AVAudioRoutingArbiter.h` | `AudioRoutingArbitrationCategory + AudioRoutingArbiter::begin()` |
+| `AVAudioSessionCapability` | class | `AVAudioSessionRoute.h` | `AudioSessionCapability` |
+| `AVAudioStereoMixing` | protocol | `AVAudioMixing.h` | `AudioStereoMixing` trait + `AudioPlayerNode` / `AudioInputNode` / `AudioMixingDestination` impls |
+| `AVAudioTime` | class | `AVAudioTime.h` | `AudioTime` |
+| `AVAudioVoiceProcessingOtherAudioDuckingConfiguration` | struct | `AVAudioIONode.h` | `AudioVoiceProcessingOtherAudioDuckingConfiguration + AudioInputNode::{voice_processing_other_audio_ducking_configuration, set_voice_processing_other_audio_ducking_configuration}` |
+| `AVAudioVoiceProcessingOtherAudioDuckingLevel` | enum | `AVAudioIONode.h` | `AudioVoiceProcessingOtherAudioDuckingLevel` |
+| `AVAudioVoiceProcessingSpeechActivityEvent` | enum | `AVAudioIONode.h` | `AudioVoiceProcessingSpeechActivityEvent + AudioInputNode::{set_muted_speech_activity_event_listener, clear_muted_speech_activity_event_listener}` |
 
 ## 🔴 GAPS
 | Symbol | Kind | Header | Notes |
 | --- | --- | --- | --- |
-| `AVAudio3DMixing` | protocol | `AVAudioMixing.h` | No protocol-level mixing abstraction in the public Rust API. |
-| `AVAudioChannelLayout` | class | `AVAudioChannelLayout.h` | Foundational helper type is not wrapped yet. |
-| `AVAudioCompressedBuffer` | class | `AVAudioBuffer.h` | No public Rust wrapper or matching Swift bridge thunk. |
-| `AVAudioConnectionPoint` | class | `AVAudioConnectionPoint.h` | Foundational helper type is not wrapped yet. |
-| `AVAudioConverterInputStatus` | enum | `AVAudioConverter.h` | Converter status or prime APIs are not exposed. |
-| `AVAudioConverterOutputStatus` | enum | `AVAudioConverter.h` | Converter status or prime APIs are not exposed. |
-| `AVAudioConverterPrimeInfo` | struct | `AVAudioConverter.h` | Converter status or prime APIs are not exposed. |
-| `AVAudioConverterPrimeMethod` | enum | `AVAudioConverter.h` | Converter status or prime APIs are not exposed. |
-| `AVAudioEngineConfigurationChangeNotification` | constant | `AVAudioEngine.h` | Manual-rendering or notification surface is not wrapped. |
-| `AVAudioEngineManualRenderingBlock` | block | `AVAudioEngine.h` | Manual-rendering or notification surface is not wrapped. |
-| `AVAudioEngineManualRenderingError` | enum | `AVAudioEngine.h` | Manual-rendering or notification surface is not wrapped. |
-| `AVAudioEngineManualRenderingMode` | enum | `AVAudioEngine.h` | Manual-rendering or notification surface is not wrapped. |
-| `AVAudioEngineManualRenderingStatus` | enum | `AVAudioEngine.h` | Manual-rendering or notification surface is not wrapped. |
-| `AVAudioIONode` | class | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
-| `AVAudioIONodeInputBlock` | block | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
-| `AVAudioMixing` | protocol | `AVAudioMixing.h` | No protocol-level mixing abstraction in the public Rust API. |
-| `AVAudioMixingDestination` | class | `AVAudioMixing.h` | No protocol-level mixing abstraction in the public Rust API. |
-| `AVAudioNodeTapBlock` | block | `AVAudioNode.h` | Node tap/time helpers are not fully wrapped. |
-| `AVAudioPlayerDelegate` | protocol | `AVAudioPlayer.h` | Delegate protocol is not bridged. |
-| `AVAudioPlayerNodeBufferOptions` | enum | `AVAudioPlayerNode.h` | Buffer options or typed completion-callback APIs are not wrapped. |
-| `AVAudioPlayerNodeCompletionCallbackType` | enum | `AVAudioPlayerNode.h` | Buffer options or typed completion-callback APIs are not wrapped. |
-| `AVAudioPlayerNodeCompletionHandler` | block | `AVAudioPlayerNode.h` | Buffer options or typed completion-callback APIs are not wrapped. |
-| `AVAudioRecorderDelegate` | protocol | `AVAudioRecorder.h` | Delegate protocol is not bridged. |
-| `AVAudioRoutingArbiter` | class | `AVAudioRoutingArbiter.h` | No wrapper for routing-arbitration APIs. |
-| `AVAudioRoutingArbitrationCategory` | enum | `AVAudioRoutingArbiter.h` | No wrapper for routing-arbitration APIs. |
-| `AVAudioSessionCapability` | class | `AVAudioSessionRoute.h` | No public Rust wrapper; this standalone session symbol remains header-visible in the macOS SDK. |
-| `AVAudioStereoMixing` | protocol | `AVAudioMixing.h` | No protocol-level mixing abstraction in the public Rust API. |
-| `AVAudioTime` | class | `AVAudioTime.h` | Foundational helper type is not wrapped yet. |
-| `AVAudioVoiceProcessingOtherAudioDuckingConfiguration` | struct | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
-| `AVAudioVoiceProcessingOtherAudioDuckingLevel` | enum | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
-| `AVAudioVoiceProcessingSpeechActivityEvent` | enum | `AVAudioIONode.h` | No public Rust wrapper or matching Swift bridge thunk. |
+| _None_ | - | - | All audited top-level macOS symbols are wrapped or exempt. |
 
 ## ⏭️ EXEMPT
 | Symbol | Kind | Header | Reason | SDK attribute |

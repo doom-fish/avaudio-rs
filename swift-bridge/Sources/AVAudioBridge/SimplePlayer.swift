@@ -1,8 +1,43 @@
 import AVFoundation
 import Foundation
 
+final class AudioSimplePlayerDelegateBox: NSObject, AVAudioPlayerDelegate {
+    let finishCallback: AVABoolCallback?
+    let decodeErrorCallback: AVAStringCallback?
+    let userData: UnsafeMutableRawPointer?
+    let dropUserData: AVADropCallback?
+
+    init(
+        finishCallback: AVABoolCallback?,
+        decodeErrorCallback: AVAStringCallback?,
+        userData: UnsafeMutableRawPointer?,
+        dropUserData: AVADropCallback?
+    ) {
+        self.finishCallback = finishCallback
+        self.decodeErrorCallback = decodeErrorCallback
+        self.userData = userData
+        self.dropUserData = dropUserData
+    }
+
+    deinit {
+        if let userData, let dropUserData {
+            dropUserData(userData)
+        }
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        finishCallback?(userData, flag)
+    }
+
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        let message = error.flatMap { ffiString($0.localizedDescription) }
+        decodeErrorCallback?(userData, message)
+    }
+}
+
 final class AudioSimplePlayerBox {
     var player: AVAudioPlayer?
+    var delegateBox: AudioSimplePlayerDelegateBox?
 
     init(url: URL) throws {
         self.player = try AVAudioPlayer(contentsOf: url)
@@ -29,6 +64,34 @@ public func av_audio_simple_player_create_from_path(
 public func av_audio_simple_player_release(_ ptr: UnsafeMutableRawPointer?) {
     guard let ptr else { return }
     Unmanaged<AudioSimplePlayerBox>.fromOpaque(ptr).release()
+}
+
+@_cdecl("av_audio_simple_player_set_delegate")
+public func av_audio_simple_player_set_delegate(
+    _ ptr: UnsafeMutableRawPointer,
+    _ finishCallback: AVABoolCallback?,
+    _ decodeErrorCallback: AVAStringCallback?,
+    _ userData: UnsafeMutableRawPointer?,
+    _ dropUserData: AVADropCallback?,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    let box = Unmanaged<AudioSimplePlayerBox>.fromOpaque(ptr).takeUnretainedValue()
+    let delegate = AudioSimplePlayerDelegateBox(
+        finishCallback: finishCallback,
+        decodeErrorCallback: decodeErrorCallback,
+        userData: userData,
+        dropUserData: dropUserData
+    )
+    box.delegateBox = delegate
+    box.player?.delegate = delegate
+    return AVA_OK
+}
+
+@_cdecl("av_audio_simple_player_clear_delegate")
+public func av_audio_simple_player_clear_delegate(_ ptr: UnsafeMutableRawPointer) {
+    let box = Unmanaged<AudioSimplePlayerBox>.fromOpaque(ptr).takeUnretainedValue()
+    box.player?.delegate = nil
+    box.delegateBox = nil
 }
 
 @_cdecl("av_audio_simple_player_play")

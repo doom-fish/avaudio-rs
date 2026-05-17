@@ -7,10 +7,14 @@ use std::ffi::CStr;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
+use std::ops::{BitOr, BitOrAssign};
+
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::file::{AudioFile, PCMBuffer};
+use crate::mixing::AudioMixingHandle;
 use crate::node::AudioNodeHandle;
+use crate::time::AudioTime;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +24,72 @@ pub struct AudioPlayerNodeInfo {
 
 struct CompletionState {
     callback: Box<dyn FnMut() + Send + 'static>,
+}
+
+struct TypedCompletionState {
+    callback: Box<dyn FnMut(AudioPlayerNodeCompletionCallbackType) + Send + 'static>,
+}
+
+/// Mirrors `AVAudioPlayerNodeBufferOptions`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct AudioPlayerNodeBufferOptions {
+    raw: u64,
+}
+
+impl AudioPlayerNodeBufferOptions {
+    pub const NONE: Self = Self { raw: 0 };
+    pub const LOOPS: Self = Self { raw: 1 << 0 };
+    pub const INTERRUPTS: Self = Self { raw: 1 << 1 };
+    pub const INTERRUPTS_AT_LOOP: Self = Self { raw: 1 << 2 };
+
+    #[must_use]
+    pub const fn bits(self) -> u64 {
+        self.raw
+    }
+}
+
+impl BitOr for AudioPlayerNodeBufferOptions {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self { raw: self.raw | rhs.raw }
+    }
+}
+
+impl BitOrAssign for AudioPlayerNodeBufferOptions {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.raw |= rhs.raw;
+    }
+}
+
+/// Mirrors `AVAudioPlayerNodeCompletionCallbackType`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum AudioPlayerNodeCompletionCallbackType {
+    DataConsumed,
+    DataRendered,
+    DataPlayedBack,
+    Other(i64),
+}
+
+impl AudioPlayerNodeCompletionCallbackType {
+    const fn from_raw(raw: i64) -> Self {
+        match raw {
+            0 => Self::DataConsumed,
+            1 => Self::DataRendered,
+            2 => Self::DataPlayedBack,
+            other => Self::Other(other),
+        }
+    }
+
+    const fn as_raw(self) -> i64 {
+        match self {
+            Self::DataConsumed => 0,
+            Self::DataRendered => 1,
+            Self::DataPlayedBack => 2,
+            Self::Other(other) => other,
+        }
+    }
 }
 
 pub struct AudioPlayerNode {
@@ -38,6 +108,12 @@ impl Drop for AudioPlayerNode {
 impl AudioNodeHandle for AudioPlayerNode {
     fn as_node_ptr(&self) -> *mut c_void {
         unsafe { ffi::av_audio_player_node_get_node_unretained(self.ptr) }
+    }
+}
+
+impl AudioMixingHandle for AudioPlayerNode {
+    fn as_mixing_ptr(&self) -> *mut c_void {
+        self.as_node_ptr()
     }
 }
 
@@ -104,6 +180,104 @@ impl AudioPlayerNode {
         F: FnMut() + Send + 'static,
     {
         self.schedule_file_with_optional_completion(file, Some(callback))
+    }
+
+    /// Schedules a buffer with explicit timing/options but without a completion callback.
+    pub fn schedule_buffer_with_options(
+        &self,
+        buffer: &PCMBuffer,
+        when: Option<&AudioTime>,
+        options: AudioPlayerNodeBufferOptions,
+    ) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            ffi::av_audio_player_node_schedule_buffer_with_options(
+                self.ptr,
+                buffer.ptr,
+                when.map_or(ptr::null_mut(), |when| when.ptr),
+                options.bits(),
+                None,
+                ptr::null_mut(),
+                None,
+                &mut err,
+            )
+        };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
+    }
+
+    /// Schedules a buffer with a typed completion callback.
+    pub fn schedule_buffer_with_callback_type<F>(
+        &self,
+        buffer: &PCMBuffer,
+        when: Option<&AudioTime>,
+        options: AudioPlayerNodeBufferOptions,
+        callback_type: AudioPlayerNodeCompletionCallbackType,
+        callback: F,
+    ) -> Result<(), AVAudioError>
+    where
+        F: FnMut(AudioPlayerNodeCompletionCallbackType) + Send + 'static,
+    {
+        let state = Box::new(TypedCompletionState {
+            callback: Box::new(callback),
+        });
+        let userdata = Box::into_raw(state).cast::<c_void>();
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            ffi::av_audio_player_node_schedule_buffer_with_callback_type(
+                self.ptr,
+                buffer.ptr,
+                when.map_or(ptr::null_mut(), |when| when.ptr),
+                options.bits(),
+                callback_type.as_raw(),
+                Some(typed_completion_trampoline),
+                userdata,
+                Some(typed_completion_drop),
+                &mut err,
+            )
+        };
+        if status != ffi::status::OK {
+            unsafe { typed_completion_drop(userdata) };
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
+    }
+
+    /// Schedules a file with a typed completion callback.
+    pub fn schedule_file_with_callback_type<F>(
+        &self,
+        file: &AudioFile,
+        when: Option<&AudioTime>,
+        callback_type: AudioPlayerNodeCompletionCallbackType,
+        callback: F,
+    ) -> Result<(), AVAudioError>
+    where
+        F: FnMut(AudioPlayerNodeCompletionCallbackType) + Send + 'static,
+    {
+        let state = Box::new(TypedCompletionState {
+            callback: Box::new(callback),
+        });
+        let userdata = Box::into_raw(state).cast::<c_void>();
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            ffi::av_audio_player_node_schedule_file_with_callback_type(
+                self.ptr,
+                file.ptr,
+                when.map_or(ptr::null_mut(), |when| when.ptr),
+                callback_type.as_raw(),
+                Some(typed_completion_trampoline),
+                userdata,
+                Some(typed_completion_drop),
+                &mut err,
+            )
+        };
+        if status != ffi::status::OK {
+            unsafe { typed_completion_drop(userdata) };
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     fn schedule_buffer_with_optional_completion<F>(
@@ -199,6 +373,20 @@ unsafe extern "C" fn completion_drop(userdata: *mut c_void) {
         return;
     }
     drop(Box::from_raw(userdata.cast::<CompletionState>()));
+}
+
+unsafe extern "C" fn typed_completion_trampoline(userdata: *mut c_void, value: i64) {
+    let Some(state) = userdata.cast::<TypedCompletionState>().as_mut() else {
+        return;
+    };
+    (state.callback)(AudioPlayerNodeCompletionCallbackType::from_raw(value));
+}
+
+unsafe extern "C" fn typed_completion_drop(userdata: *mut c_void) {
+    if userdata.is_null() {
+        return;
+    }
+    drop(Box::from_raw(userdata.cast::<TypedCompletionState>()));
 }
 
 fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, AVAudioError> {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+- Closed the remaining macOS SDK audit gaps: added `AVAudioChannelLayout`, `AVAudioCompressedBuffer`, `AVAudioConnectionPoint`, `AVAudioTime`, `AVAudioMixing` / `AVAudioStereoMixing` / `AVAudio3DMixing`, `AVAudioMixingDestination`, `AVAudioRoutingArbiter`, and `AVAudioSessionCapability` wrappers.
+- Expanded `AVAudioEngine`, `AVAudioConverter`, `AVAudioPlayerNode`, `AVAudioPlayer`, `AVAudioRecorder`, and `AVAudioIONode` coverage with manual-rendering, prime/status, typed scheduling, delegate bridging, voice-processing, ducking, and speech-activity surfaces.
+- Added gap-closure smoke tests plus refreshed coverage documentation to reflect 100% audited macOS symbol coverage (with the single iOS-only exemption retained).
+
 ## 0.2.2
 
 - Added generic `AVAudioUnit`, `AVAudioUnitEffect`, `AVAudioUnitTimeEffect`, `AVAudioUnitGenerator`, and `AVAudioUnitMIDIInstrument` wrappers, plus richer audio-unit metadata/preset/component-description support.

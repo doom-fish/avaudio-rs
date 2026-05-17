@@ -13,6 +13,7 @@ use std::convert::TryFrom;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::format::AudioFormatInfo;
+use crate::io_node::AudioIONodeHandle;
 use crate::node::AudioNodeHandle;
 use crate::util::parse_json_and_free;
 
@@ -39,6 +40,12 @@ impl Drop for AudioOutputNode {
 
 impl AudioNodeHandle for AudioOutputNode {
     fn as_node_ptr(&self) -> *mut c_void {
+        self.ptr
+    }
+}
+
+impl AudioIONodeHandle for AudioOutputNode {
+    fn as_io_node_ptr(&self) -> *mut c_void {
         self.ptr
     }
 }

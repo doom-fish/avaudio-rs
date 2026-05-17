@@ -9,7 +9,7 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 use std::convert::TryFrom;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::path::Path;
 
 use crate::error::{from_swift, AVAudioError};
@@ -18,6 +18,45 @@ use crate::ffi;
 fn channel_to_i32(channel: usize) -> Result<i32, AVAudioError> {
     i32::try_from(channel)
         .map_err(|_| AVAudioError::InvalidArgument("channel index exceeds Int32 range".into()))
+}
+
+/// Callback configuration bridging `AVAudioRecorderDelegate`.
+#[derive(Default)]
+pub struct AudioRecorderDelegate {
+    did_finish_recording: Option<Box<dyn FnMut(bool) + Send + 'static>>,
+    encode_error: Option<Box<dyn FnMut(Option<String>) + Send + 'static>>,
+}
+
+impl AudioRecorderDelegate {
+    /// Creates an empty recorder-delegate configuration.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Registers a finish-recording callback.
+    #[must_use]
+    pub fn on_finish_recording<F>(mut self, callback: F) -> Self
+    where
+        F: FnMut(bool) + Send + 'static,
+    {
+        self.did_finish_recording = Some(Box::new(callback));
+        self
+    }
+
+    /// Registers an encode-error callback.
+    #[must_use]
+    pub fn on_encode_error<F>(mut self, callback: F) -> Self
+    where
+        F: FnMut(Option<String>) + Send + 'static,
+    {
+        self.encode_error = Some(Box::new(callback));
+        self
+    }
+}
+
+struct AudioRecorderDelegateState {
+    did_finish_recording: Option<Box<dyn FnMut(bool) + Send + 'static>>,
+    encode_error: Option<Box<dyn FnMut(Option<String>) + Send + 'static>>,
 }
 
 /// Wraps an `AVAudioRecorder` instance.
@@ -64,6 +103,36 @@ impl AudioRecorder {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
         Ok(Self { ptr })
+    }
+
+    /// Installs delegate callbacks bridging `AVAudioRecorderDelegate`.
+    pub fn set_delegate(&self, delegate: AudioRecorderDelegate) -> Result<(), AVAudioError> {
+        let state = Box::new(AudioRecorderDelegateState {
+            did_finish_recording: delegate.did_finish_recording,
+            encode_error: delegate.encode_error,
+        });
+        let userdata = Box::into_raw(state).cast::<c_void>();
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            ffi::av_audio_recorder_set_delegate(
+                self.ptr,
+                Some(recorder_finish_trampoline),
+                Some(recorder_encode_error_trampoline),
+                userdata,
+                Some(recorder_delegate_drop),
+                &mut err,
+            )
+        };
+        if status != ffi::status::OK {
+            unsafe { recorder_delegate_drop(userdata) };
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
+    }
+
+    /// Clears any installed recorder delegate callbacks.
+    pub fn clear_delegate(&self) {
+        unsafe { ffi::av_audio_recorder_clear_delegate(self.ptr) };
     }
 
     /// Starts recording.
@@ -117,4 +186,41 @@ impl AudioRecorder {
     pub fn delete_recording(&self) -> bool {
         unsafe { ffi::av_audio_recorder_delete_recording(self.ptr) }
     }
+}
+
+unsafe extern "C" fn recorder_finish_trampoline(userdata: *mut c_void, success: bool) {
+    let Some(state) = userdata.cast::<AudioRecorderDelegateState>().as_mut() else {
+        return;
+    };
+    if let Some(callback) = state.did_finish_recording.as_mut() {
+        callback(success);
+    }
+}
+
+unsafe extern "C" fn recorder_encode_error_trampoline(
+    userdata: *mut c_void,
+    message: *mut c_char,
+) {
+    let Some(state) = userdata.cast::<AudioRecorderDelegateState>().as_mut() else {
+        return;
+    };
+    if let Some(callback) = state.encode_error.as_mut() {
+        let value = if message.is_null() {
+            None
+        } else {
+            let decoded = CStr::from_ptr(message).to_string_lossy().into_owned();
+            unsafe { ffi::ava_string_free(message) };
+            Some(decoded)
+        };
+        callback(value);
+    } else if !message.is_null() {
+        unsafe { ffi::ava_string_free(message) };
+    }
+}
+
+unsafe extern "C" fn recorder_delegate_drop(userdata: *mut c_void) {
+    if userdata.is_null() {
+        return;
+    }
+    drop(Box::from_raw(userdata.cast::<AudioRecorderDelegateState>()));
 }
