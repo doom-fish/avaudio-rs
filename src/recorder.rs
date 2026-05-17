@@ -201,10 +201,7 @@ unsafe extern "C" fn recorder_finish_trampoline(userdata: *mut c_void, success: 
     }
 }
 
-unsafe extern "C" fn recorder_encode_error_trampoline(
-    userdata: *mut c_void,
-    message: *mut c_char,
-) {
+unsafe extern "C" fn recorder_encode_error_trampoline(userdata: *mut c_void, message: *mut c_char) {
     let Some(state) = userdata.cast::<AudioRecorderDelegateState>().as_mut() else {
         return;
     };

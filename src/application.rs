@@ -142,5 +142,7 @@ unsafe extern "C" fn record_permission_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<RecordPermissionCallbackState>()));
+    drop(Box::from_raw(
+        userdata.cast::<RecordPermissionCallbackState>(),
+    ));
 }

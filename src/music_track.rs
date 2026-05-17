@@ -227,7 +227,10 @@ impl MusicTrack {
     }
 
     /// Sets the automation-track flag.
-    pub fn set_uses_automated_parameters(&self, uses_automated_parameters: bool) -> Result<(), AVAudioError> {
+    pub fn set_uses_automated_parameters(
+        &self,
+        uses_automated_parameters: bool,
+    ) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
             ffi::av_music_track_set_uses_automated_parameters(
@@ -246,7 +249,8 @@ impl MusicTrack {
     pub fn add_event(&self, event: &MusicEvent, beat: f64) -> Result<(), AVAudioError> {
         let json = event_to_json_cstring(event)?;
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_music_track_add_event_json(self.ptr, json.as_ptr(), beat, &mut err) };
+        let status =
+            unsafe { ffi::av_music_track_add_event_json(self.ptr, json.as_ptr(), beat, &mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -254,7 +258,11 @@ impl MusicTrack {
     }
 
     /// Moves all events in `range` by `beat_amount`.
-    pub fn move_events_in_range(&self, range: BeatRange, beat_amount: f64) -> Result<(), AVAudioError> {
+    pub fn move_events_in_range(
+        &self,
+        range: BeatRange,
+        beat_amount: f64,
+    ) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
             ffi::av_music_track_move_events_in_range(
@@ -274,7 +282,9 @@ impl MusicTrack {
     /// Clears all events in `range` without splicing the track.
     pub fn clear_events_in_range(&self, range: BeatRange) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_music_track_clear_events_in_range(self.ptr, range.start, range.length, &mut err) };
+        let status = unsafe {
+            ffi::av_music_track_clear_events_in_range(self.ptr, range.start, range.length, &mut err)
+        };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -284,7 +294,9 @@ impl MusicTrack {
     /// Cuts all events in `range`, splicing the track.
     pub fn cut_events_in_range(&self, range: BeatRange) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_music_track_cut_events_in_range(self.ptr, range.start, range.length, &mut err) };
+        let status = unsafe {
+            ffi::av_music_track_cut_events_in_range(self.ptr, range.start, range.length, &mut err)
+        };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -340,7 +352,11 @@ impl MusicTrack {
     }
 
     /// Enumerates events in `range`, optionally moving or removing them.
-    pub fn enumerate_events_in_range<F>(&self, range: BeatRange, callback: F) -> Result<(), AVAudioError>
+    pub fn enumerate_events_in_range<F>(
+        &self,
+        range: BeatRange,
+        callback: F,
+    ) -> Result<(), AVAudioError>
     where
         F: FnMut(TrackEvent) -> TrackEventAction + 'static,
     {

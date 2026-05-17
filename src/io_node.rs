@@ -107,7 +107,9 @@ pub trait AudioIONode: AudioIONodeHandle {
     /// Returns the presentation or hardware latency.
     fn presentation_latency(&self) -> Result<f64, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let latency = unsafe { ffi::av_audio_io_node_get_presentation_latency(self.as_io_node_ptr(), &mut err) };
+        let latency = unsafe {
+            ffi::av_audio_io_node_get_presentation_latency(self.as_io_node_ptr(), &mut err)
+        };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

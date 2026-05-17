@@ -254,10 +254,7 @@ impl AudioInputNode {
     ) -> Result<AudioVoiceProcessingOtherAudioDuckingConfiguration, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe {
-            ffi::av_audio_input_node_get_other_audio_ducking_configuration_json(
-                self.ptr,
-                &mut err,
-            )
+            ffi::av_audio_input_node_get_other_audio_ducking_configuration_json(self.ptr, &mut err)
         };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -308,7 +305,11 @@ where
 
 fn speech_activity_listener_callback_parts<F>(
     callback: F,
-) -> (Option<ffi::IntCallback>, *mut c_void, Option<ffi::DropCallback>)
+) -> (
+    Option<ffi::IntCallback>,
+    *mut c_void,
+    Option<ffi::DropCallback>,
+)
 where
     F: FnMut(AudioVoiceProcessingSpeechActivityEvent) + Send + 'static,
 {
@@ -350,5 +351,7 @@ unsafe extern "C" fn speech_activity_listener_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<SpeechActivityListenerState>()));
+    drop(Box::from_raw(
+        userdata.cast::<SpeechActivityListenerState>(),
+    ));
 }

@@ -16,8 +16,8 @@ use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::node::AudioNodeHandle;
 use crate::types::{
-    Audio3DMixingPointSourceInHeadMode, Audio3DMixingRenderingAlgorithm,
-    Audio3DMixingSourceMode, Audio3DVector, AudioNodeBus,
+    Audio3DMixingPointSourceInHeadMode, Audio3DMixingRenderingAlgorithm, Audio3DMixingSourceMode,
+    Audio3DVector, AudioNodeBus,
 };
 use crate::util::parse_json_and_free;
 
@@ -59,7 +59,8 @@ impl AudioMixingDestination {
     /// Returns the underlying mixer connection point.
     pub fn connection_point(&self) -> Result<AudioConnectionPoint, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_mixing_destination_copy_connection_point(self.ptr, &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_mixing_destination_copy_connection_point(self.ptr, &mut err) };
         if ptr.is_null() {
             if err.is_null() {
                 return Err(AVAudioError::OperationFailed(
@@ -87,7 +88,8 @@ pub trait AudioStereoMixing: AudioMixingHandle {
     /// Sets the stereo pan.
     fn set_pan(&self, pan: f32) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_stereo_mixing_set_pan(self.as_mixing_ptr(), pan, &mut err) };
+        let status =
+            unsafe { ffi::av_audio_stereo_mixing_set_pan(self.as_mixing_ptr(), pan, &mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -122,7 +124,10 @@ pub trait Audio3DMixing: AudioMixingHandle {
 
     /// Returns the source mode.
     fn source_mode(&self) -> Result<Audio3DMixingSourceMode, AVAudioError> {
-        let raw = read_3d_enum(self.as_mixing_ptr(), ffi::av_audio_3d_mixing_get_source_mode)?;
+        let raw = read_3d_enum(
+            self.as_mixing_ptr(),
+            ffi::av_audio_3d_mixing_get_source_mode,
+        )?;
         decode_source_mode(raw)
     }
 
@@ -170,7 +175,10 @@ pub trait Audio3DMixing: AudioMixingHandle {
 
     /// Returns the reverb blend.
     fn reverb_blend(&self) -> Result<f32, AVAudioError> {
-        read_float(self.as_mixing_ptr(), ffi::av_audio_3d_mixing_get_reverb_blend)
+        read_float(
+            self.as_mixing_ptr(),
+            ffi::av_audio_3d_mixing_get_reverb_blend,
+        )
     }
 
     /// Sets the reverb blend.
@@ -184,7 +192,10 @@ pub trait Audio3DMixing: AudioMixingHandle {
 
     /// Returns the obstruction value.
     fn obstruction(&self) -> Result<f32, AVAudioError> {
-        read_float(self.as_mixing_ptr(), ffi::av_audio_3d_mixing_get_obstruction)
+        read_float(
+            self.as_mixing_ptr(),
+            ffi::av_audio_3d_mixing_get_obstruction,
+        )
     }
 
     /// Sets the obstruction value.
@@ -213,7 +224,8 @@ pub trait Audio3DMixing: AudioMixingHandle {
     /// Returns the 3D position.
     fn position(&self) -> Result<Audio3DVector, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_3d_mixing_get_position_json(self.as_mixing_ptr(), &mut err) };
+        let json_ptr =
+            unsafe { ffi::av_audio_3d_mixing_get_position_json(self.as_mixing_ptr(), &mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -257,7 +269,8 @@ pub trait AudioMixing: AudioStereoMixing + Audio3DMixing {
     /// Sets the input volume.
     fn set_volume(&self, volume: f32) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_mixing_set_volume(self.as_mixing_ptr(), volume, &mut err) };
+        let status =
+            unsafe { ffi::av_audio_mixing_set_volume(self.as_mixing_ptr(), volume, &mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -341,9 +354,7 @@ fn write_3d_enum(
     Ok(())
 }
 
-fn decode_rendering_algorithm(
-    raw: i64,
-) -> Result<Audio3DMixingRenderingAlgorithm, AVAudioError> {
+fn decode_rendering_algorithm(raw: i64) -> Result<Audio3DMixingRenderingAlgorithm, AVAudioError> {
     match raw {
         0 => Ok(Audio3DMixingRenderingAlgorithm::EqualPowerPanning),
         1 => Ok(Audio3DMixingRenderingAlgorithm::SphericalHead),

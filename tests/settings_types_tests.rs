@@ -23,10 +23,16 @@ fn settings_and_type_surfaces() -> Result<(), Box<dyn std::error::Error>> {
 
     assert_eq!(AudioSessionActivationOptions::NONE.bits(), 0);
     assert_eq!(AudioSessionInterruptionOptions::SHOULD_RESUME.bits(), 1);
-    assert_eq!(AudioSessionSetActiveOptions::NOTIFY_OTHERS_ON_DEACTIVATION.bits(), 1);
+    assert_eq!(
+        AudioSessionSetActiveOptions::NOTIFY_OTHERS_ON_DEACTIVATION.bits(),
+        1
+    );
     assert_eq!(AudioSessionIOType::Aggregated as u64, 1);
     assert_eq!(AudioSessionInterruptionType::Began as u64, 1);
-    assert_eq!(AudioSessionRouteChangeReason::RouteConfigurationChange as u64, 8);
+    assert_eq!(
+        AudioSessionRouteChangeReason::RouteConfigurationChange as u64,
+        8
+    );
     assert_eq!(AudioStereoOrientation::LandscapeLeft as i64, 4);
     assert_eq!(AudioSessionRenderingMode::DolbyAtmos as i64, 5);
     assert_eq!(AudioSessionMicrophoneInjectionMode::SpokenAudio as i64, 1);

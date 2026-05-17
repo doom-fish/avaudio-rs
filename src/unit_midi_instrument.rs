@@ -48,12 +48,25 @@ pub trait AudioUnitMIDIInstrumentHandle: AudioUnitHandle {
 
     /// Sends a MIDI note-on event.
     fn start_note(&self, note: u8, velocity: u8, channel: u8) {
-        unsafe { ffi::av_audio_unit_midi_instrument_start_note(self.as_midi_instrument_ptr(), note, velocity, channel) };
+        unsafe {
+            ffi::av_audio_unit_midi_instrument_start_note(
+                self.as_midi_instrument_ptr(),
+                note,
+                velocity,
+                channel,
+            )
+        };
     }
 
     /// Sends a MIDI note-off event.
     fn stop_note(&self, note: u8, channel: u8) {
-        unsafe { ffi::av_audio_unit_midi_instrument_stop_note(self.as_midi_instrument_ptr(), note, channel) };
+        unsafe {
+            ffi::av_audio_unit_midi_instrument_stop_note(
+                self.as_midi_instrument_ptr(),
+                note,
+                channel,
+            )
+        };
     }
 
     /// Sends a standard MIDI controller event.
@@ -81,7 +94,13 @@ pub trait AudioUnitMIDIInstrumentHandle: AudioUnitHandle {
 
     /// Sends a channel-pressure event.
     fn send_pressure(&self, pressure: u8, channel: u8) {
-        unsafe { ffi::av_audio_unit_midi_instrument_send_pressure(self.as_midi_instrument_ptr(), pressure, channel) };
+        unsafe {
+            ffi::av_audio_unit_midi_instrument_send_pressure(
+                self.as_midi_instrument_ptr(),
+                pressure,
+                channel,
+            )
+        };
     }
 
     /// Sends a polyphonic key-pressure event.
@@ -108,13 +127,7 @@ pub trait AudioUnitMIDIInstrumentHandle: AudioUnitHandle {
     }
 
     /// Sends a program change along with explicit bank-select values.
-    fn send_program_change_with_bank(
-        &self,
-        program: u8,
-        bank_msb: u8,
-        bank_lsb: u8,
-        channel: u8,
-    ) {
+    fn send_program_change_with_bank(&self, program: u8, bank_msb: u8, bank_lsb: u8, channel: u8) {
         unsafe {
             ffi::av_audio_unit_midi_instrument_send_program_change_bank(
                 self.as_midi_instrument_ptr(),
@@ -170,7 +183,9 @@ pub trait AudioUnitMIDIInstrumentHandle: AudioUnitHandle {
             AVAudioError::InvalidArgument(format!("failed to encode MIDI event list: {error}"))
         })?;
         let json = CString::new(json).map_err(|error| {
-            AVAudioError::InvalidArgument(format!("MIDI event list JSON contains NUL byte: {error}"))
+            AVAudioError::InvalidArgument(format!(
+                "MIDI event list JSON contains NUL byte: {error}"
+            ))
         })?;
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {

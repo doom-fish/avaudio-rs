@@ -46,9 +46,14 @@ fn engine_manual_rendering_surfaces() -> Result<(), Box<dyn std::error::Error>> 
 
     engine.enable_manual_rendering_mode(AudioEngineManualRenderingMode::Realtime, &format, 256)?;
     assert!(engine.is_in_manual_rendering_mode()?);
-    assert_eq!(engine.manual_rendering_mode()?, AudioEngineManualRenderingMode::Realtime);
+    assert_eq!(
+        engine.manual_rendering_mode()?,
+        AudioEngineManualRenderingMode::Realtime
+    );
     assert_eq!(engine.manual_rendering_maximum_frame_count()?, 256);
-    assert!((engine.manual_rendering_format()?.info()?.sample_rate - 44_100.0).abs() < f64::EPSILON);
+    assert!(
+        (engine.manual_rendering_format()?.info()?.sample_rate - 44_100.0).abs() < f64::EPSILON
+    );
     let status = engine.manual_rendering_block_render(128, &mut buffer)?;
     assert!(matches!(
         status,
@@ -167,8 +172,8 @@ fn player_delegate_and_typed_completion_surfaces() -> Result<(), Box<dyn std::er
     buffer.set_frame_length(128)?;
     engine.attach_node(&player);
     engine.connect_node_to_main_mixer(&player, Some(&format));
-    let options = AudioPlayerNodeBufferOptions::LOOPS
-        | AudioPlayerNodeBufferOptions::INTERRUPTS_AT_LOOP;
+    let options =
+        AudioPlayerNodeBufferOptions::LOOPS | AudioPlayerNodeBufferOptions::INTERRUPTS_AT_LOOP;
     assert_eq!(options.bits(), 5);
     player.schedule_buffer_with_options(&buffer, None, options)?;
     let _ = AudioPlayerNodeCompletionCallbackType::DataConsumed;
@@ -188,9 +193,12 @@ fn recorder_delegate_and_routing_surfaces() -> Result<(), Box<dyn std::error::Er
     recorder.clear_delegate();
 
     let (tx, rx) = mpsc::channel();
-    AudioRoutingArbiter::shared().begin(AudioRoutingArbitrationCategory::Playback, move |changed, error| {
-        let _ = tx.send((changed, error));
-    })?;
+    AudioRoutingArbiter::shared().begin(
+        AudioRoutingArbitrationCategory::Playback,
+        move |changed, error| {
+            let _ = tx.send((changed, error));
+        },
+    )?;
     let (_changed, error) = rx.recv_timeout(Duration::from_secs(5))?;
     assert!(error.is_none());
     AudioRoutingArbiter::shared().leave();

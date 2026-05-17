@@ -208,7 +208,8 @@ impl AudioUnit {
     pub fn load_preset_at_path(&self, path: impl AsRef<Path>) -> Result<(), AVAudioError> {
         let path = path_to_cstring(path)?;
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_unit_load_preset_at_url(self.ptr, path.as_ptr(), &mut err) };
+        let status =
+            unsafe { ffi::av_audio_unit_load_preset_at_url(self.ptr, path.as_ptr(), &mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }

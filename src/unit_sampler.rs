@@ -78,7 +78,9 @@ impl AudioUnitSampler {
     pub fn load_instrument(&self, path: impl AsRef<Path>) -> Result<(), AVAudioError> {
         let path = path_to_cstring(path)?;
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_unit_sampler_load_instrument(self.ptr, path.as_ptr(), &mut err) };
+        let status = unsafe {
+            ffi::av_audio_unit_sampler_load_instrument(self.ptr, path.as_ptr(), &mut err)
+        };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }

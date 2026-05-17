@@ -22,7 +22,9 @@ use serde_json::Value;
 use crate::error::AVAudioError;
 
 fn missing_field(field: &str, kind: &str) -> AVAudioError {
-    AVAudioError::InvalidArgument(format!("missing `{field}` for `{kind}` music event payload"))
+    AVAudioError::InvalidArgument(format!(
+        "missing `{field}` for `{kind}` music event payload"
+    ))
 }
 
 fn require<T>(value: Option<T>, field: &str, kind: &str) -> Result<T, AVAudioError> {
@@ -340,7 +342,13 @@ pub struct ExtendedNoteOnEvent {
 }
 
 impl ExtendedNoteOnEvent {
-    pub fn new(midi_note: f32, velocity: f32, instrument_id: u32, group_id: u32, duration: f64) -> Self {
+    pub fn new(
+        midi_note: f32,
+        velocity: f32,
+        instrument_id: u32,
+        group_id: u32,
+        duration: f64,
+    ) -> Self {
         Self {
             midi_note,
             velocity,
@@ -792,7 +800,11 @@ impl TryFrom<MusicEventPayload> for MusicEvent {
             })),
             "midiProgramChange" => Ok(Self::MidiProgramChange(MidiProgramChangeEvent {
                 channel: require(payload.channel, "channel", "midiProgramChange")?,
-                program_number: require(payload.program_number, "programNumber", "midiProgramChange")?,
+                program_number: require(
+                    payload.program_number,
+                    "programNumber",
+                    "midiProgramChange",
+                )?,
             })),
             "midiChannelPressure" => Ok(Self::MidiChannelPressure(MidiChannelPressureEvent {
                 channel: require(payload.channel, "channel", "midiChannelPressure")?,
@@ -861,15 +873,19 @@ impl TryFrom<MusicEventPayload> for MusicEvent {
 
 pub(crate) fn event_to_json_cstring(event: &MusicEvent) -> Result<CString, AVAudioError> {
     let payload = MusicEventPayload::from(event);
-    let json = serde_json::to_string(&payload)
-        .map_err(|error| AVAudioError::InvalidArgument(format!("failed to encode music event: {error}")))?;
-    CString::new(json)
-        .map_err(|error| AVAudioError::InvalidArgument(format!("music event JSON contains NUL byte: {error}")))
+    let json = serde_json::to_string(&payload).map_err(|error| {
+        AVAudioError::InvalidArgument(format!("failed to encode music event: {error}"))
+    })?;
+    CString::new(json).map_err(|error| {
+        AVAudioError::InvalidArgument(format!("music event JSON contains NUL byte: {error}"))
+    })
 }
 
 pub(crate) fn event_from_json_str(json: &str) -> Result<MusicEvent, AVAudioError> {
     let payload = serde_json::from_str::<MusicEventPayload>(json).map_err(|error| {
-        AVAudioError::InvalidArgument(format!("failed to decode music event payload JSON: {error}"))
+        AVAudioError::InvalidArgument(format!(
+            "failed to decode music event payload JSON: {error}"
+        ))
     })?;
     MusicEvent::try_from(payload)
 }

@@ -95,7 +95,9 @@ impl AudioCompressedBuffer {
     /// Sets the current packet count.
     pub fn set_packet_count(&self, packet_count: AudioPacketCount) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_compressed_buffer_set_packet_count(self.ptr, packet_count, &mut err) };
+        let status = unsafe {
+            ffi::av_audio_compressed_buffer_set_packet_count(self.ptr, packet_count, &mut err)
+        };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -120,7 +122,9 @@ impl AudioCompressedBuffer {
     /// Sets the byte length.
     pub fn set_byte_length(&self, byte_length: u32) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_compressed_buffer_set_byte_length(self.ptr, byte_length, &mut err) };
+        let status = unsafe {
+            ffi::av_audio_compressed_buffer_set_byte_length(self.ptr, byte_length, &mut err)
+        };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }

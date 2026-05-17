@@ -52,7 +52,9 @@ impl BitOr for AudioPlayerNodeBufferOptions {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self { raw: self.raw | rhs.raw }
+        Self {
+            raw: self.raw | rhs.raw,
+        }
     }
 }
 

@@ -51,7 +51,8 @@ impl AudioChannelLayout {
     /// Creates a channel layout from an `AudioChannelLayoutTag`.
     pub fn new_with_layout_tag(layout_tag: AudioChannelLayoutTag) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_channel_layout_create_with_layout_tag(layout_tag, &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_channel_layout_create_with_layout_tag(layout_tag, &mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

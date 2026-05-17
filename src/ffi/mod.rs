@@ -37,11 +37,8 @@ pub type MusicTrackEnumerationCallback = unsafe extern "C" fn(
     remove_out: *mut bool,
     out_error_message: *mut *mut c_char,
 ) -> i32;
-pub type StreamEventCallback = unsafe extern "C" fn(
-    kind: i32,
-    payload: *const c_void,
-    ctx: *mut c_void,
-);
+pub type StreamEventCallback =
+    unsafe extern "C" fn(kind: i32, payload: *const c_void, ctx: *mut c_void);
 
 extern "C" {
     pub fn ava_string_free(s: *mut c_char);
@@ -143,10 +140,8 @@ extern "C" {
     ) -> *mut c_char;
 
     pub fn av_audio_time_create_with_host_time(host_time: u64) -> *mut c_void;
-    pub fn av_audio_time_create_with_sample_time(
-        sample_time: i64,
-        sample_rate: f64,
-    ) -> *mut c_void;
+    pub fn av_audio_time_create_with_sample_time(sample_time: i64, sample_rate: f64)
+        -> *mut c_void;
     pub fn av_audio_time_create_with_host_and_sample_time(
         host_time: u64,
         sample_time: i64,
@@ -157,8 +152,10 @@ extern "C" {
         time: *mut c_void,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
-    pub fn av_audio_time_extrapolate_from_anchor(time: *mut c_void, anchor: *mut c_void)
-        -> *mut c_void;
+    pub fn av_audio_time_extrapolate_from_anchor(
+        time: *mut c_void,
+        anchor: *mut c_void,
+    ) -> *mut c_void;
     pub fn av_audio_time_host_time_for_seconds(seconds: f64) -> u64;
     pub fn av_audio_time_seconds_for_host_time(host_time: u64) -> f64;
 
@@ -226,9 +223,7 @@ extern "C" {
     pub fn av_audio_engine_get_input_node(engine: *mut c_void) -> *mut c_void;
     pub fn av_audio_engine_get_output_node(engine: *mut c_void) -> *mut c_void;
 
-    pub fn av_audio_settings_constants_json(
-        out_error_message: *mut *mut c_char,
-    ) -> *mut c_char;
+    pub fn av_audio_settings_constants_json(out_error_message: *mut *mut c_char) -> *mut c_char;
 
     pub fn av_audio_player_node_create(out_error_message: *mut *mut c_char) -> *mut c_void;
     pub fn av_audio_player_node_release(player: *mut c_void);
@@ -779,16 +774,12 @@ extern "C" {
     pub fn av_audio_session_get_sample_rate() -> f64;
     pub fn av_audio_session_get_output_volume() -> f32;
     pub fn av_audio_session_is_other_audio_playing() -> bool;
-    pub fn av_audio_application_get_input_muted(
-        out_error_message: *mut *mut c_char,
-    ) -> bool;
+    pub fn av_audio_application_get_input_muted(out_error_message: *mut *mut c_char) -> bool;
     pub fn av_audio_application_set_input_muted(
         muted: bool,
         out_error_message: *mut *mut c_char,
     ) -> i32;
-    pub fn av_audio_application_get_record_permission(
-        out_error_message: *mut *mut c_char,
-    ) -> i32;
+    pub fn av_audio_application_get_record_permission(out_error_message: *mut *mut c_char) -> i32;
     pub fn av_audio_application_request_record_permission(
         callback: Option<BoolCallback>,
         userdata: *mut c_void,

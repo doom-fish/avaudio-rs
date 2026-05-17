@@ -85,9 +85,8 @@ impl AudioSourceNode {
     {
         let (callback_fn, userdata, drop_fn) = source_render_callback_parts(callback);
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe {
-            ffi::av_audio_source_node_create(callback_fn, userdata, drop_fn, &mut err)
-        };
+        let ptr =
+            unsafe { ffi::av_audio_source_node_create(callback_fn, userdata, drop_fn, &mut err) };
         if ptr.is_null() {
             if let Some(drop_fn) = drop_fn {
                 unsafe { drop_fn(userdata) };

@@ -236,5 +236,7 @@ unsafe extern "C" fn simple_player_delegate_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<AudioSimplePlayerDelegateState>()));
+    drop(Box::from_raw(
+        userdata.cast::<AudioSimplePlayerDelegateState>(),
+    ));
 }

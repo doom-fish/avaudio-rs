@@ -65,7 +65,11 @@ impl AudioTime {
     ) -> Self {
         Self {
             ptr: unsafe {
-                ffi::av_audio_time_create_with_host_and_sample_time(host_time, sample_time, sample_rate)
+                ffi::av_audio_time_create_with_host_and_sample_time(
+                    host_time,
+                    sample_time,
+                    sample_rate,
+                )
             },
         }
     }

@@ -113,8 +113,9 @@ impl AudioUnitComponentManager {
     /// Returns localized standard system tags.
     pub fn standard_localized_tag_names(&self) -> Result<Vec<String>, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr =
-            unsafe { ffi::av_audio_unit_component_manager_standard_localized_tag_names_json(&mut err) };
+        let json_ptr = unsafe {
+            ffi::av_audio_unit_component_manager_standard_localized_tag_names_json(&mut err)
+        };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

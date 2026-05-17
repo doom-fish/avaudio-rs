@@ -44,7 +44,8 @@ impl AudioConnectionPoint {
     /// Creates a connection point for a node and bus.
     pub fn new(node: &dyn AudioNodeHandle, bus: AudioNodeBus) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_connection_point_create(node.as_node_ptr(), bus, &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_connection_point_create(node.as_node_ptr(), bus, &mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

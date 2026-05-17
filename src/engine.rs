@@ -196,7 +196,8 @@ impl AudioEngine {
     /// Returns manual-rendering metadata.
     pub fn manual_rendering_info(&self) -> Result<AudioEngineManualRenderingInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_engine_manual_rendering_info_json(self.ptr, &mut err) };
+        let json_ptr =
+            unsafe { ffi::av_audio_engine_manual_rendering_info_json(self.ptr, &mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::ENGINE_ERROR, err) });
         }
@@ -217,7 +218,9 @@ impl AudioEngine {
 
     /// Returns the maximum manual-rendering frame count.
     pub fn manual_rendering_maximum_frame_count(&self) -> Result<u32, AVAudioError> {
-        Ok(self.manual_rendering_info()?.manual_rendering_maximum_frame_count)
+        Ok(self
+            .manual_rendering_info()?
+            .manual_rendering_maximum_frame_count)
     }
 
     /// Returns the current manual-rendering sample time.
@@ -276,7 +279,8 @@ impl AudioEngine {
     /// Returns the notification name posted when the engine configuration changes.
     pub fn configuration_change_notification_name() -> Result<String, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let string_ptr = unsafe { ffi::av_audio_engine_configuration_change_notification_name(&mut err) };
+        let string_ptr =
+            unsafe { ffi::av_audio_engine_configuration_change_notification_name(&mut err) };
         if string_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::ENGINE_ERROR, err) });
         }

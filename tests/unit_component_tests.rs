@@ -14,6 +14,8 @@ fn component_manager_lists_components() -> Result<(), Box<dyn std::error::Error>
     assert!(!constants.manufacturer_name_apple.is_empty());
     assert!(!constants.type_effect.is_empty());
     assert!(!components.is_empty());
-    assert!(components.iter().any(|component| !component.name.is_empty()));
+    assert!(components
+        .iter()
+        .any(|component| !component.name.is_empty()));
     Ok(())
 }

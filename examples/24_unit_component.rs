@@ -5,7 +5,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let constants = manager.standard_constants()?;
     let components = manager.components()?;
 
-    println!("Apple manufacturer constant: {}", constants.manufacturer_name_apple);
+    println!(
+        "Apple manufacturer constant: {}",
+        constants.manufacturer_name_apple
+    );
     println!("Found {} audio-unit components", components.len());
     for component in components.iter().take(5) {
         println!(

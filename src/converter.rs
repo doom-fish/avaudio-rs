@@ -161,7 +161,9 @@ impl AudioConverter {
 
     /// Returns the converter priming method.
     pub fn prime_method(&self) -> AudioConverterPrimeMethod {
-        AudioConverterPrimeMethod::from_raw(unsafe { ffi::av_audio_converter_get_prime_method(self.ptr) })
+        AudioConverterPrimeMethod::from_raw(unsafe {
+            ffi::av_audio_converter_get_prime_method(self.ptr)
+        })
     }
 
     /// Sets the converter priming method.
@@ -222,11 +224,11 @@ impl AudioConverter {
             AudioConverterOutputStatus::HaveData
             | AudioConverterOutputStatus::InputRanDry
             | AudioConverterOutputStatus::EndOfStream => Ok(()),
-            AudioConverterOutputStatus::Error | AudioConverterOutputStatus::Other(_) => Err(
-                AVAudioError::OperationFailed(
+            AudioConverterOutputStatus::Error | AudioConverterOutputStatus::Other(_) => {
+                Err(AVAudioError::OperationFailed(
                     "converter returned an error status without an NSError".into(),
-                ),
-            ),
+                ))
+            }
         }
     }
 }
