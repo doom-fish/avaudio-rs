@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- Added the `async` Cargo feature with a new `async_api` module built on `doom-fish-utils::stream::BoundedAsyncStream`.
+- Added `ConfigChangeStream` for `AVAudioEngine.configurationChangeNotification` events.
+- Added `PlayerNodeCompletionStream` with stream-level `schedule_buffer` / `schedule_file` helpers for `AVAudioPlayerNode` completion callbacks.
+- Added `RecorderEventStream` for `AVAudioRecorderDelegate` `DidFinishRecording` and `EncodeError` events.
+- Added `SimplePlayerEventStream` for `AVAudioPlayerDelegate` `DidFinishPlaying` and `DecodeError` events.
+- Added `TapBufferStream` for lossy `AVAudioNode.installTap` buffer snapshots.
+- Added async examples and integration tests for the new stream surfaces.
+
 ## 0.2.3
 
 - Closed the remaining macOS SDK audit gaps: added `AVAudioChannelLayout`, `AVAudioCompressedBuffer`, `AVAudioConnectionPoint`, `AVAudioTime`, `AVAudioMixing` / `AVAudioStereoMixing` / `AVAudio3DMixing`, `AVAudioMixingDestination`, `AVAudioRoutingArbiter`, and `AVAudioSessionCapability` wrappers.

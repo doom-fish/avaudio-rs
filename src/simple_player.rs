@@ -87,6 +87,10 @@ impl AudioSimplePlayer {
         Ok(Self { ptr })
     }
 
+    pub(crate) const fn ptr(&self) -> *mut c_void {
+        self.ptr
+    }
+
     /// Installs delegate callbacks bridging `AVAudioPlayerDelegate`.
     pub fn set_delegate(&self, delegate: AudioSimplePlayerDelegate) -> Result<(), AVAudioError> {
         let state = Box::new(AudioSimplePlayerDelegateState {

@@ -105,6 +105,10 @@ impl AudioRecorder {
         Ok(Self { ptr })
     }
 
+    pub(crate) const fn ptr(&self) -> *mut c_void {
+        self.ptr
+    }
+
     /// Installs delegate callbacks bridging `AVAudioRecorderDelegate`.
     pub fn set_delegate(&self, delegate: AudioRecorderDelegate) -> Result<(), AVAudioError> {
         let state = Box::new(AudioRecorderDelegateState {

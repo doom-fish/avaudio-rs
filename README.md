@@ -15,8 +15,18 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
 - `AVAudioApplication` permission/input-mute queries and `AVAudioUnitComponentManager` discovery snapshots/constants.
 - `AVAudioSession`-style session queries with a macOS-friendly compatibility stub.
 - Optional Rust callbacks for `AVAudioPlayerNode`, `AVAudioSourceNode`, `AVAudioSinkNode`, `AVAudioSequencer`, `AVAudioPlayerDelegate`, and `AVAudioRecorderDelegate` blocks/callbacks.
+- Optional `async` feature exposing executor-agnostic stream wrappers for engine configuration changes, player-node completions, recorder/player delegates, and `AVAudioNode.installTap` events.
 
 See [COVERAGE.md](COVERAGE.md) for the API coverage table.
+
+## Async streams
+
+Enable the `async` feature to use `avaudio::async_api` and the Tier-2 stream wrappers built on `doom-fish-utils::stream::BoundedAsyncStream`.
+
+```bash
+cargo run --features async --example 26_async_config_change
+cargo run --features async --example 27_async_player_completion
+```
 
 ## Example
 
@@ -74,6 +84,8 @@ The crate ships with a numbered example set:
 - `23_sequencer`
 - `24_unit_component`
 - `25_unit_variants`
+- `26_async_config_change` *(requires `--features async`)*
+- `27_async_player_completion` *(requires `--features async`)*
 
 Examples that require playback or capture hardware print a skip message and still exit successfully on headless hosts.
 

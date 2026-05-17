@@ -1,6 +1,6 @@
 [package]
 name = "avaudio"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/avaudio-rs"
@@ -39,10 +39,15 @@ crate-type = ["lib"]
 
 [features]
 default = []
+async = []
 
 [dependencies]
+doom-fish-utils = { path = "../doom-fish-utils", version = "0.1" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[dev-dependencies]
+pollster = "0.3"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -127,6 +132,14 @@ name = "24_unit_component"
 
 [[example]]
 name = "25_unit_variants"
+
+[[example]]
+name = "26_async_config_change"
+required-features = ["async"]
+
+[[example]]
+name = "27_async_player_completion"
+required-features = ["async"]
 
 [profile.release]
 debug = "full"

@@ -2,6 +2,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod application;
+#[cfg(feature = "async")]
+#[cfg_attr(docsrs, doc(cfg(feature = "async")))]
+pub mod async_api;
 mod audio_file;
 mod buffer;
 mod channel_layout;

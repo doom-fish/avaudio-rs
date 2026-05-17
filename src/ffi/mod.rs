@@ -37,6 +37,11 @@ pub type MusicTrackEnumerationCallback = unsafe extern "C" fn(
     remove_out: *mut bool,
     out_error_message: *mut *mut c_char,
 ) -> i32;
+pub type StreamEventCallback = unsafe extern "C" fn(
+    kind: i32,
+    payload: *const c_void,
+    ctx: *mut c_void,
+);
 
 extern "C" {
     pub fn ava_string_free(s: *mut c_char);
@@ -1045,6 +1050,55 @@ extern "C" {
     pub fn av_audio_unit_varispeed_release(node: *mut c_void);
     pub fn av_audio_unit_varispeed_get_rate(node: *mut c_void) -> f32;
     pub fn av_audio_unit_varispeed_set_rate(node: *mut c_void, rate: f32);
+
+    pub fn ava_engine_config_change_subscribe(
+        engine: *mut c_void,
+        on_event: StreamEventCallback,
+        ctx: *mut c_void,
+    ) -> *mut c_void;
+    pub fn ava_engine_config_change_unsubscribe(handle: *mut c_void);
+
+    pub fn ava_player_node_stream_subscribe(
+        player: *mut c_void,
+        on_event: StreamEventCallback,
+        ctx: *mut c_void,
+    ) -> *mut c_void;
+    pub fn ava_player_node_stream_schedule_buffer(
+        handle: *mut c_void,
+        buffer: *mut c_void,
+        options: u64,
+        out_error: *mut *mut c_char,
+    ) -> i32;
+    pub fn ava_player_node_stream_schedule_file(
+        handle: *mut c_void,
+        file: *mut c_void,
+        out_error: *mut *mut c_char,
+    ) -> i32;
+    pub fn ava_player_node_stream_unsubscribe(handle: *mut c_void);
+
+    pub fn ava_recorder_stream_subscribe(
+        recorder: *mut c_void,
+        on_event: StreamEventCallback,
+        ctx: *mut c_void,
+    ) -> *mut c_void;
+    pub fn ava_recorder_stream_unsubscribe(handle: *mut c_void);
+
+    pub fn ava_simple_player_stream_subscribe(
+        player: *mut c_void,
+        on_event: StreamEventCallback,
+        ctx: *mut c_void,
+    ) -> *mut c_void;
+    pub fn ava_simple_player_stream_unsubscribe(handle: *mut c_void);
+
+    pub fn ava_node_tap_subscribe(
+        node: *mut c_void,
+        bus: usize,
+        buffer_size: u32,
+        format: *mut c_void,
+        on_event: StreamEventCallback,
+        ctx: *mut c_void,
+    ) -> *mut c_void;
+    pub fn ava_node_tap_unsubscribe(handle: *mut c_void);
 }
 
 pub mod status {
