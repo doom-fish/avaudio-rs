@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.1
+
+- **async_api**: Added `catch_user_panic` wrapping to all five `extern "C"` callbacks
+  (`config_change_cb`, `player_completion_cb`, `recorder_event_cb`,
+  `simple_player_event_cb`, `tap_event_cb`) — an unhandled Rust panic across an
+  FFI boundary is undefined behaviour.
+- **async_api / TapBufferStream**: Documented the real-time thread safety caveat:
+  the tap callback fires on Apple's CoreAudio high-priority I/O render thread and
+  internally acquires a `std::sync::Mutex`; added guidance on capacity sizing and
+  consumer drain discipline, plus a note that a lock-free SPSC replacement is
+  planned.
+- **async_api / TapBufferStream**: Added SAFETY comments on the `payload` pointer
+  dereference in `tap_event_cb` and on the `Box::from_raw` call in `drop_sender`.
+- **async_api**: Added rationale comments on all `unsafe impl Send` blocks.
+- **async_api / recorder_event_cb, simple_player_event_cb**: Added SAFETY comment
+  on the `CStr::from_ptr` calls for the error-message payload.
+- **Cargo.toml**: Widened `doom-fish-utils` version constraint to `>=0.1, <0.3`
+  to allow the next minor release without a lockstep bump.
+
 ## 0.3.0
 
 - Added the `async` Cargo feature with a new `async_api` module built on `doom-fish-utils::stream::BoundedAsyncStream`.
