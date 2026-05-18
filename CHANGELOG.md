@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 - 2026-05-18
+
+- Re-exported the shared `SimpleCallback` and `DropCallback` aliases from `doom-fish-utils::ffi_callbacks` instead of duplicating those FFI typedefs locally.
+
 ## 0.3.1
 
 - **async_api**: Added `catch_user_panic` wrapping to all five `extern "C"` callbacks

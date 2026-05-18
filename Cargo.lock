@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "avaudio"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "doom-fish-utils",
  "pollster",
@@ -14,7 +14,7 @@ dependencies = [
 
 [[package]]
 name = "doom-fish-utils"
-version = "0.1.1"
+version = "0.2.0"
 
 [[package]]
 name = "itoa"

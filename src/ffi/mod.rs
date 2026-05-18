@@ -2,8 +2,8 @@
 
 use core::ffi::{c_char, c_void};
 
-pub type SimpleCallback = unsafe extern "C" fn(userdata: *mut c_void);
-pub type DropCallback = unsafe extern "C" fn(userdata: *mut c_void);
+pub use doom_fish_utils::ffi_callbacks::{DropCallback, SimpleCallback};
+
 pub type BoolCallback = unsafe extern "C" fn(userdata: *mut c_void, value: bool);
 pub type StringCallback = unsafe extern "C" fn(userdata: *mut c_void, value: *mut c_char);
 pub type IntCallback = unsafe extern "C" fn(userdata: *mut c_void, value: i64);
