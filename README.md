@@ -21,7 +21,7 @@ See [COVERAGE.md](COVERAGE.md) for the API coverage table.
 
 ## Async streams
 
-Enable the `async` feature to use `avaudio::async_api` and the Tier-2 stream wrappers built on `doom-fish-utils::stream::BoundedAsyncStream`.
+Enable the `async` feature to use `avaudio::async_api` and the Tier-2 stream wrappers built on `doom-fish-utils::stream::BoundedAsyncStream`. `TapBufferStream` is special-cased to use `doom-fish-utils::spsc::SpscRing` on the `CoreAudio` render thread; if the consumer falls behind, the oldest buffered tap event is overwritten.
 
 ```bash
 cargo run --features async --example 26_async_config_change

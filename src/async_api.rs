@@ -11,6 +11,7 @@ use core::ptr;
 use std::ffi::CStr;
 
 use doom_fish_utils::panic_safe::catch_user_panic;
+use doom_fish_utils::spsc::{PopFuture as SpscPopFuture, SpscConsumer, SpscProducer, SpscRing};
 use doom_fish_utils::stream::{AsyncStreamSender, BoundedAsyncStream, NextItem};
 
 use crate::audio_file::AudioFile;
@@ -75,14 +76,20 @@ struct TapEventPayloadRaw {
     sample_rate: f64,
 }
 
-fn drop_sender<T>(sender_raw: &mut *mut AsyncStreamSender<T>) {
-    if !(*sender_raw).is_null() {
-        // SAFETY: `*sender_raw` was produced by `Box::into_raw` inside the
+const TAP_BUFFER_STREAM_MAX_CAPACITY: usize = 4096;
+
+type TapBufferProducer = SpscProducer<TapBufferEvent, TAP_BUFFER_STREAM_MAX_CAPACITY>;
+type TapBufferConsumer = SpscConsumer<TapBufferEvent, TAP_BUFFER_STREAM_MAX_CAPACITY>;
+type TapBufferNext<'a> = SpscPopFuture<'a, TapBufferEvent, TAP_BUFFER_STREAM_MAX_CAPACITY>;
+
+fn drop_boxed_ptr<T>(raw: &mut *mut T) {
+    if !(*raw).is_null() {
+        // SAFETY: `*raw` was produced by `Box::into_raw` inside the
         // corresponding `subscribe*` constructor and this path runs at most
         // once (the pointer is immediately zeroed below so it cannot be
         // reached a second time).
-        unsafe { drop(Box::from_raw(*sender_raw)) };
-        *sender_raw = ptr::null_mut();
+        unsafe { drop(Box::from_raw(*raw)) };
+        *raw = ptr::null_mut();
     }
 }
 
@@ -105,7 +112,7 @@ impl Drop for ConfigChangeStream {
             unsafe { ffi::ava_engine_config_change_unsubscribe(self.bridge_ptr) };
             self.bridge_ptr = ptr::null_mut();
         }
-        drop_sender(&mut self.sender_raw);
+        drop_boxed_ptr(&mut self.sender_raw);
     }
 }
 
@@ -165,7 +172,7 @@ impl Drop for PlayerNodeCompletionStream {
             unsafe { ffi::ava_player_node_stream_unsubscribe(self.bridge_ptr) };
             self.bridge_ptr = ptr::null_mut();
         }
-        drop_sender(&mut self.sender_raw);
+        drop_boxed_ptr(&mut self.sender_raw);
     }
 }
 
@@ -259,7 +266,7 @@ impl Drop for RecorderEventStream {
             unsafe { ffi::ava_recorder_stream_unsubscribe(self.bridge_ptr) };
             self.bridge_ptr = ptr::null_mut();
         }
-        drop_sender(&mut self.sender_raw);
+        drop_boxed_ptr(&mut self.sender_raw);
     }
 }
 
@@ -339,7 +346,7 @@ impl Drop for SimplePlayerEventStream {
             unsafe { ffi::ava_simple_player_stream_unsubscribe(self.bridge_ptr) };
             self.bridge_ptr = ptr::null_mut();
         }
-        drop_sender(&mut self.sender_raw);
+        drop_boxed_ptr(&mut self.sender_raw);
     }
 }
 
@@ -406,40 +413,31 @@ impl SimplePlayerEventStream {
 /// Async stream of [`TapBufferEvent`]s produced by an `AVAudioNode.installTap`
 /// tap installed via [`TapBufferStream::subscribe_to_node`].
 ///
-/// # Real-time thread safety — important caveat
+/// # Real-time safety
 ///
-/// Apple's `AVAudioNode.installTap(onBus:bufferSize:format:block:)` fires
-/// its callback on the **`CoreAudio` high-priority I/O render thread**.  The
-/// internal implementation calls [`AsyncStreamSender::push`], which acquires
-/// a [`std::sync::Mutex`] on every invocation.  Under normal conditions
-/// (capacity is not exhausted, consumer drains promptly) the lock is
-/// uncontested and the critical section is extremely short (a single ring-buffer
-/// push).  However, callers should be aware of the following:
+/// Apple's `AVAudioNode.installTap(onBus:bufferSize:format:block:)` fires its
+/// callback on the **`CoreAudio` high-priority I/O render thread**. The tap
+/// callback hands events off through a lock-free single-producer / single-
+/// consumer ring, so the render thread does not take a mutex while publishing
+/// tap snapshots to async Rust code.
 ///
-/// * **Keep capacity generous.**  A capacity of ≥ 32 tap events reduces the
-///   probability of the audio thread encountering a contended mutex cycle.
-/// * **Drain promptly.**  Call [`Self::try_next`] or poll [`Self::next`] from
-///   a low-latency async task so the consumer does not hold the lock when the
-///   render thread fires.
-/// * **Never call blocking operations** (I/O, `std::thread::sleep`, heavy
-///   allocation, or any other lock) from a task that calls [`Self::try_next`]
-///   inside a tight audio-sync loop.
+/// The ring is intentionally **lossy**: if the consumer falls behind, the
+/// oldest buffered tap event is overwritten so the render thread can keep
+/// running without waiting. Drain the stream promptly if every tap snapshot is
+/// important to your application.
 ///
-/// > **Known limitation:** the current implementation uses a
-/// > `std::sync::Mutex`-backed ring buffer rather than a lock-free SPSC queue.
-/// > A future version of this crate will replace it to fully eliminate priority-
-/// > inversion risk on the render thread.  Track progress in the crate
-/// > repository.
+/// Requested capacities above `TAP_BUFFER_STREAM_MAX_CAPACITY` are clamped to
+/// that fixed pre-allocated maximum.
 pub struct TapBufferStream {
-    inner: BoundedAsyncStream<TapBufferEvent>,
+    inner: TapBufferConsumer,
     bridge_ptr: *mut c_void,
-    sender_raw: *mut AsyncStreamSender<TapBufferEvent>,
+    sender_raw: *mut TapBufferProducer,
 }
 
 // SAFETY: `bridge_ptr` is an AVFoundation opaque tap handle whose install/
-// remove APIs are thread-safe per Apple documentation.  `sender_raw` is a
-// heap-allocated `Box` that is only accessed from a single thread at a time.
-// `BoundedAsyncStream` is itself `Send`.
+// remove APIs are thread-safe per Apple documentation. `sender_raw` is a
+// heap-allocated `Box` that is only touched from a single thread at a time.
+// `SpscConsumer` is itself `Send`.
 unsafe impl Send for TapBufferStream {}
 
 impl Drop for TapBufferStream {
@@ -448,38 +446,37 @@ impl Drop for TapBufferStream {
             unsafe { ffi::ava_node_tap_unsubscribe(self.bridge_ptr) };
             self.bridge_ptr = ptr::null_mut();
         }
-        drop_sender(&mut self.sender_raw);
+        drop_boxed_ptr(&mut self.sender_raw);
     }
 }
 
-// Called on Apple's CoreAudio high-priority I/O render thread.
+// Called on Apple's `CoreAudio` high-priority I/O render thread.
 //
 // SAFETY contract for this function:
 //   • `payload`, when non-null, points to a `TapEventPayloadRaw` struct
 //     laid out exactly as defined in the Swift bridge (matching `#[repr(C)]`
 //     on the Rust side); the Swift bridge guarantees its validity for the
 //     duration of this call.
-//   • `ctx` is either null or points to a live `AsyncStreamSender<TapBufferEvent>`
-//     produced by `Box::into_raw` in `subscribe_to_node`; it remains valid
-//     until `drop_sender` is called from `TapBufferStream::drop`, which only
+//   • `ctx` is either null or points to a live `TapBufferProducer` produced by
+//     `Box::into_raw` in `subscribe_to_node`; it remains valid until
+//     `drop_boxed_ptr` is called from `TapBufferStream::drop`, which only
 //     happens after `ava_node_tap_unsubscribe` has returned and the render
 //     thread can no longer fire this callback.
 //
-// ⚠ Real-time note: `sender.push()` acquires a `std::sync::Mutex`.
-// See the `TapBufferStream` struct-level docs for the implications.
+// The producer path is lock-free and never waits for the async consumer.
 unsafe extern "C" fn tap_event_cb(kind: i32, payload: *const c_void, ctx: *mut c_void) {
     catch_user_panic("tap_event_cb", || {
         if kind != 0 || payload.is_null() {
             return;
         }
-        let Some(sender) = ctx.cast::<AsyncStreamSender<TapBufferEvent>>().as_ref() else {
+        let Some(sender) = ctx.cast::<TapBufferProducer>().as_ref() else {
             return;
         };
         // SAFETY: `payload` is non-null (checked above) and points to a
         // valid `TapEventPayloadRaw` as guaranteed by the Swift bridge
         // contract described in the function-level SAFETY comment.
         let raw = unsafe { &*payload.cast::<TapEventPayloadRaw>() };
-        sender.push(TapBufferEvent {
+        let _ = sender.push_overwrite(TapBufferEvent {
             frame_length: raw.frame_length,
             channel_count: raw.channel_count,
             sample_rate: raw.sample_rate,
@@ -492,19 +489,20 @@ impl TapBufferStream {
     /// snapshot events.
     ///
     /// Each event contains the frame length, channel count, and sample rate
-    /// of the buffer delivered by `CoreAudio`.  When the ring buffer is full,
-    /// the **oldest** event is silently dropped (lossy-by-design).
+    /// of the buffer delivered by `CoreAudio`. When the requested capacity is
+    /// exceeded, the **oldest** buffered event is overwritten so the render
+    /// thread never waits for the async consumer.
     ///
-    /// # Real-time thread safety
+    /// # Real-time safety
     ///
     /// The tap callback fires on Apple's `CoreAudio` high-priority I/O render
-    /// thread.  Internally it acquires a `std::sync::Mutex`; see the
-    /// [`TapBufferStream`] struct-level documentation for implications and
-    /// guidance on choosing an appropriate `capacity`.
+    /// thread and publishes into a lock-free SPSC ring. `capacity` must be
+    /// greater than 0; values above `TAP_BUFFER_STREAM_MAX_CAPACITY` are
+    /// clamped to that fixed pre-allocated maximum.
     ///
     /// # Panics
     ///
-    /// Panics if `capacity` is 0 (see [`BoundedAsyncStream::new`]).
+    /// Panics if `capacity` is 0.
     pub fn subscribe_to_node(
         node: &dyn AudioNodeHandle,
         bus: usize,
@@ -512,7 +510,12 @@ impl TapBufferStream {
         format: Option<&AudioFormat>,
         capacity: usize,
     ) -> Self {
-        let (stream, sender) = BoundedAsyncStream::new(capacity);
+        assert!(capacity > 0, "TapBufferStream capacity must be > 0");
+        let ring_capacity = capacity.min(TAP_BUFFER_STREAM_MAX_CAPACITY);
+        let (sender, stream) =
+            SpscRing::<TapBufferEvent, TAP_BUFFER_STREAM_MAX_CAPACITY>::with_capacity(
+                ring_capacity,
+            );
         let sender_raw = Box::into_raw(Box::new(sender));
         let bridge_ptr = unsafe {
             ffi::ava_node_tap_subscribe(
@@ -531,12 +534,12 @@ impl TapBufferStream {
         }
     }
 
-    pub const fn next(&self) -> NextItem<'_, TapBufferEvent> {
-        self.inner.next()
+    pub const fn next(&self) -> TapBufferNext<'_> {
+        self.inner.pop_async()
     }
 
     pub fn try_next(&self) -> Option<TapBufferEvent> {
-        self.inner.try_next()
+        self.inner.pop()
     }
 
     pub fn buffered_count(&self) -> usize {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] - 2026-05-19
+
+- Replaced `TapBufferStream`'s render-thread handoff with a lock-free SPSC ring from `doom-fish-utils::spsc`, removing the render-thread `std::sync::Mutex` from `AVAudioNode.installTap` delivery.
+- `TapBufferStream` now overwrites the oldest buffered tap event when the requested capacity is exhausted, preserving real-time safety under overload.
+- Added a 5-second async tap-buffer stress test that simulates render callbacks at 48 kHz aggregate throughput and verifies the consumer drains without hanging.
+
 ## [0.3.3] - 2026-05-19
 
 - Bump MSRV from 1.70 to 1.76 to match fleet baseline.
