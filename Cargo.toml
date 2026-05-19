@@ -1,6 +1,6 @@
 [package]
 name = "avaudio"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/avaudio-rs"
@@ -9,7 +9,7 @@ description = "Safe Rust bindings for Apple's AVFoundation audio graph, file, un
 authors = ["Per Johansson <per@doom.fish>"]
 keywords = ["avaudio", "avaudioengine", "avaudiofile", "avfoundation", "macos"]
 categories = ["multimedia::audio", "api-bindings", "os::macos-apis"]
-rust-version = "1.70"
+rust-version = "1.76"
 readme = "README.md"
 build = "build.rs"
 include = [
