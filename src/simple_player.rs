@@ -87,6 +87,7 @@ impl AudioSimplePlayer {
         Ok(Self { ptr })
     }
 
+    #[cfg(feature = "async")]
     pub(crate) const fn ptr(&self) -> *mut c_void {
         self.ptr
     }

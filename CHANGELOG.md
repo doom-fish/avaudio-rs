@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.1] - 2026-05-20
+
+- Clippy hygiene sweep: cleared all `-D warnings` lints across the crate. No public API change.
+
 ## [0.4.0] - 2026-05-19
 
 - Replaced `TapBufferStream`'s render-thread handoff with a lock-free SPSC ring from `doom-fish-utils::spsc`, removing the render-thread `std::sync::Mutex` from `AVAudioNode.installTap` delivery.
