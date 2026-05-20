@@ -62,3 +62,49 @@ pub unsafe fn from_swift(status: i32, error_str: *mut core::ffi::c_char) -> AVAu
         _ => AVAudioError::OperationFailed(format!("unknown status {status}: {message}")),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::ptr;
+
+    #[test]
+    fn display_formats_format_errors() {
+        assert_eq!(
+            AVAudioError::FormatError("bad format".into()).to_string(),
+            "audio format error: bad format",
+        );
+    }
+
+    #[test]
+    fn display_formats_callback_errors() {
+        assert_eq!(
+            AVAudioError::CallbackError("callback dropped".into()).to_string(),
+            "audio callback error: callback dropped",
+        );
+    }
+
+    #[test]
+    fn from_swift_maps_known_status_codes() {
+        unsafe {
+            assert_eq!(
+                from_swift(ffi::status::FILE_ERROR, ptr::null_mut()),
+                AVAudioError::FileError(String::new()),
+            );
+            assert_eq!(
+                from_swift(ffi::status::ENGINE_ERROR, ptr::null_mut()),
+                AVAudioError::EngineError(String::new()),
+            );
+        }
+    }
+
+    #[test]
+    fn from_swift_uses_operation_failed_for_unknown_statuses() {
+        unsafe {
+            assert_eq!(
+                from_swift(77, ptr::null_mut()),
+                AVAudioError::OperationFailed("unknown status 77: ".into()),
+            );
+        }
+    }
+}

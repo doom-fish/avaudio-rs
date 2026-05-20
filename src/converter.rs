@@ -232,3 +232,87 @@ impl AudioConverter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::format::AudioFormatInfo;
+
+    #[test]
+    fn prime_method_round_trips_known_values() {
+        for (raw, method) in [
+            (0, AudioConverterPrimeMethod::Pre),
+            (1, AudioConverterPrimeMethod::Normal),
+            (2, AudioConverterPrimeMethod::None),
+        ] {
+            assert_eq!(AudioConverterPrimeMethod::from_raw(raw), method);
+            assert_eq!(method.as_raw(), raw);
+        }
+    }
+
+    #[test]
+    fn prime_method_preserves_other_values() {
+        let method = AudioConverterPrimeMethod::from_raw(99);
+
+        assert_eq!(method, AudioConverterPrimeMethod::Other(99));
+        assert_eq!(method.as_raw(), 99);
+    }
+
+    #[test]
+    fn input_status_maps_known_and_other_values() {
+        assert_eq!(AudioConverterInputStatus::from_raw(0), AudioConverterInputStatus::HaveData);
+        assert_eq!(AudioConverterInputStatus::from_raw(1), AudioConverterInputStatus::NoDataNow);
+        assert_eq!(AudioConverterInputStatus::from_raw(2), AudioConverterInputStatus::EndOfStream);
+        assert_eq!(AudioConverterInputStatus::from_raw(9), AudioConverterInputStatus::Other(9));
+    }
+
+    #[test]
+    fn output_status_maps_known_and_other_values() {
+        assert_eq!(AudioConverterOutputStatus::from_raw(0), AudioConverterOutputStatus::HaveData);
+        assert_eq!(AudioConverterOutputStatus::from_raw(1), AudioConverterOutputStatus::InputRanDry);
+        assert_eq!(AudioConverterOutputStatus::from_raw(2), AudioConverterOutputStatus::EndOfStream);
+        assert_eq!(AudioConverterOutputStatus::from_raw(3), AudioConverterOutputStatus::Error);
+        assert_eq!(AudioConverterOutputStatus::from_raw(9), AudioConverterOutputStatus::Other(9));
+    }
+
+    #[test]
+    fn prime_info_deserializes_bridge_shape() {
+        let info: AudioConverterPrimeInfo =
+            serde_json::from_str(r#"{"leadingFrames":128,"trailingFrames":64}"#).unwrap();
+
+        assert_eq!(
+            info,
+            AudioConverterPrimeInfo {
+                leading_frames: 128,
+                trailing_frames: 64,
+            },
+        );
+    }
+
+    #[test]
+    fn converter_info_deserializes_nested_format_info() {
+        let info: AudioConverterInfo = serde_json::from_str(
+            r#"{"inputFormat":{"commonFormat":1,"sampleRate":44100.0,"channelCount":2,"isInterleaved":false},"outputFormat":{"commonFormat":3,"sampleRate":48000.0,"channelCount":1,"isInterleaved":true}}"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            info.input_format,
+            AudioFormatInfo {
+                common_format: 1,
+                sample_rate: 44_100.0,
+                channel_count: 2,
+                is_interleaved: false,
+            },
+        );
+        assert_eq!(
+            info.output_format,
+            AudioFormatInfo {
+                common_format: 3,
+                sample_rate: 48_000.0,
+                channel_count: 1,
+                is_interleaved: true,
+            },
+        );
+    }
+}

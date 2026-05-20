@@ -106,3 +106,39 @@ fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, 
         AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}"))
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn common_format_maps_known_raw_values() {
+        assert_eq!(AudioCommonFormat::from_raw(1), AudioCommonFormat::PcmFloat32);
+        assert_eq!(AudioCommonFormat::from_raw(2), AudioCommonFormat::PcmFloat64);
+        assert_eq!(AudioCommonFormat::from_raw(3), AudioCommonFormat::PcmInt16);
+        assert_eq!(AudioCommonFormat::from_raw(4), AudioCommonFormat::PcmInt32);
+    }
+
+    #[test]
+    fn common_format_maps_unknown_values_to_other() {
+        assert_eq!(AudioCommonFormat::from_raw(-1), AudioCommonFormat::Other);
+    }
+
+    #[test]
+    fn audio_format_info_deserializes_bridge_shape() {
+        let info: AudioFormatInfo = serde_json::from_str(
+            r#"{"commonFormat":3,"sampleRate":48000.0,"channelCount":2,"isInterleaved":true}"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            info,
+            AudioFormatInfo {
+                common_format: 3,
+                sample_rate: 48_000.0,
+                channel_count: 2,
+                is_interleaved: true,
+            },
+        );
+    }
+}

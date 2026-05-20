@@ -84,3 +84,47 @@ pub enum AudioEnvironmentOutputType {
     BuiltInSpeakers = 2,
     ExternalSpeakers = 3,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn vector_new_preserves_components() {
+        assert_eq!(
+            Audio3DVector::new(1.0, 2.0, 3.0),
+            Audio3DVector {
+                x: 1.0,
+                y: 2.0,
+                z: 3.0,
+            },
+        );
+    }
+
+    #[test]
+    fn orientation_new_preserves_vectors() {
+        let forward = Audio3DVector::new(0.0, 0.0, -1.0);
+        let up = Audio3DVector::new(0.0, 1.0, 0.0);
+
+        assert_eq!(
+            Audio3DVectorOrientation::new(forward, up),
+            Audio3DVectorOrientation { forward, up },
+        );
+    }
+
+    #[test]
+    fn rendering_algorithm_discriminants_match_sdk_values() {
+        assert_eq!(Audio3DMixingRenderingAlgorithm::EqualPowerPanning as i64, 0);
+        assert_eq!(Audio3DMixingRenderingAlgorithm::Hrtf as i64, 2);
+        assert_eq!(Audio3DMixingRenderingAlgorithm::HrtfHighQuality as i64, 6);
+        assert_eq!(Audio3DMixingRenderingAlgorithm::Auto as i64, 7);
+    }
+
+    #[test]
+    fn source_mode_and_output_type_discriminants_match_sdk_values() {
+        assert_eq!(Audio3DMixingSourceMode::SpatializeIfMono as i64, 0);
+        assert_eq!(Audio3DMixingSourceMode::AmbienceBed as i64, 3);
+        assert_eq!(Audio3DMixingPointSourceInHeadMode::Mono as i64, 0);
+        assert_eq!(AudioEnvironmentOutputType::ExternalSpeakers as i64, 3);
+    }
+}

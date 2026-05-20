@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.2] - 2026-05-20
+
+- Added in-`src/` unit tests across `format`, `converter`, `io_node`, `types`, and `error` (Tier 2 quality polish), providing fast `cargo test --lib` fail-fast signal alongside the existing integration tests under `tests/`.
+
 ## [0.4.1] - 2026-05-20
 
 - Clippy hygiene sweep: cleared all `-D warnings` lints across the crate. No public API change.

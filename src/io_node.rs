@@ -157,3 +157,79 @@ pub fn parse_ducking_configuration_json(
         AudioVoiceProcessingOtherAudioDuckingLevel::from_raw(payload.ducking_level_raw),
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ducking_level_round_trips_known_values() {
+        for (raw, level) in [
+            (0, AudioVoiceProcessingOtherAudioDuckingLevel::Default),
+            (10, AudioVoiceProcessingOtherAudioDuckingLevel::Min),
+            (20, AudioVoiceProcessingOtherAudioDuckingLevel::Mid),
+            (30, AudioVoiceProcessingOtherAudioDuckingLevel::Max),
+        ] {
+            assert_eq!(AudioVoiceProcessingOtherAudioDuckingLevel::from_raw(raw), level);
+            assert_eq!(level.as_raw(), raw);
+        }
+    }
+
+    #[test]
+    fn ducking_level_preserves_other_values() {
+        let level = AudioVoiceProcessingOtherAudioDuckingLevel::from_raw(55);
+
+        assert_eq!(level, AudioVoiceProcessingOtherAudioDuckingLevel::Other(55));
+        assert_eq!(level.as_raw(), 55);
+    }
+
+    #[test]
+    fn ducking_configuration_new_preserves_fields() {
+        let configuration = AudioVoiceProcessingOtherAudioDuckingConfiguration::new(
+            true,
+            AudioVoiceProcessingOtherAudioDuckingLevel::Mid,
+        );
+
+        assert!(configuration.enable_advanced_ducking);
+        assert_eq!(
+            configuration.ducking_level,
+            AudioVoiceProcessingOtherAudioDuckingLevel::Mid,
+        );
+    }
+
+    #[test]
+    fn speech_activity_event_maps_known_and_other_values() {
+        assert_eq!(
+            AudioVoiceProcessingSpeechActivityEvent::from_raw(0),
+            AudioVoiceProcessingSpeechActivityEvent::Started,
+        );
+        assert_eq!(
+            AudioVoiceProcessingSpeechActivityEvent::from_raw(1),
+            AudioVoiceProcessingSpeechActivityEvent::Ended,
+        );
+        assert_eq!(
+            AudioVoiceProcessingSpeechActivityEvent::from_raw(9),
+            AudioVoiceProcessingSpeechActivityEvent::Other(9),
+        );
+    }
+
+    #[test]
+    fn ducking_configuration_payload_deserializes_bridge_shape() {
+        let payload: AudioVoiceProcessingOtherAudioDuckingConfigurationPayload = serde_json::from_str(
+            r#"{"enableAdvancedDucking":true,"duckingLevelRaw":20}"#,
+        )
+        .unwrap();
+        let configuration = AudioVoiceProcessingOtherAudioDuckingConfiguration::new(
+            payload.enable_advanced_ducking,
+            AudioVoiceProcessingOtherAudioDuckingLevel::from_raw(payload.ducking_level_raw),
+        );
+
+        assert_eq!(
+            configuration,
+            AudioVoiceProcessingOtherAudioDuckingConfiguration::new(
+                true,
+                AudioVoiceProcessingOtherAudioDuckingLevel::Mid,
+            ),
+        );
+    }
+}
