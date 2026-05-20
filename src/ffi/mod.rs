@@ -1049,6 +1049,14 @@ extern "C" {
     ) -> *mut c_void;
     pub fn ava_engine_config_change_unsubscribe(handle: *mut c_void);
 
+    pub fn ava_input_node_speech_activity_subscribe(
+        node: *mut c_void,
+        on_event: StreamEventCallback,
+        ctx: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ava_input_node_speech_activity_unsubscribe(handle: *mut c_void);
+
     pub fn ava_player_node_stream_subscribe(
         player: *mut c_void,
         on_event: StreamEventCallback,

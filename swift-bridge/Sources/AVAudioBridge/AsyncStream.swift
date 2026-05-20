@@ -233,6 +233,82 @@ public func ava_simple_player_stream_unsubscribe(_ handle: UnsafeMutableRawPoint
     Unmanaged<SimplePlayerStreamBridge>.fromOpaque(handle).release()
 }
 
+final class MutedSpeechActivityStreamBridge: NSObject {
+    let node: AVAudioInputNode
+    let onEvent: AVAStreamEventCallback
+    let ctx: UnsafeMutableRawPointer
+    private let stateLock = NSLock()
+    private var active = true
+
+    init?(
+        nodePtr: UnsafeMutableRawPointer,
+        onEvent: @escaping AVAStreamEventCallback,
+        ctx: UnsafeMutableRawPointer,
+        outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+    ) {
+        self.node = Unmanaged<AVAudioInputNode>.fromOpaque(nodePtr).takeUnretainedValue()
+        self.onEvent = onEvent
+        self.ctx = ctx
+        super.init()
+
+        guard #available(macOS 14.0, *) else {
+            outError?.pointee = ffiString("muted speech activity listener requires macOS 14.0")
+            return nil
+        }
+
+        let ok = node.setMutedSpeechActivityEventListener { [weak self] event in
+            guard let self else { return }
+            self.stateLock.lock()
+            defer { self.stateLock.unlock() }
+            guard self.active else { return }
+            self.onEvent(Int32(event.rawValue), nil, self.ctx)
+        }
+        if !ok {
+            outError?.pointee = ffiString("failed to install muted speech activity listener")
+            return nil
+        }
+    }
+
+    func cancel() {
+        stateLock.lock()
+        let wasActive = active
+        active = false
+        stateLock.unlock()
+
+        guard wasActive else { return }
+        if #available(macOS 14.0, *) {
+            _ = node.setMutedSpeechActivityEventListener(nil)
+        }
+    }
+
+    deinit {
+        cancel()
+    }
+}
+
+@_cdecl("ava_input_node_speech_activity_subscribe")
+public func ava_input_node_speech_activity_subscribe(
+    _ nodePtr: UnsafeMutableRawPointer,
+    _ onEvent: AVAStreamEventCallback,
+    _ ctx: UnsafeMutableRawPointer,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    let bridge = MutedSpeechActivityStreamBridge(
+        nodePtr: nodePtr,
+        onEvent: onEvent,
+        ctx: ctx,
+        outError: outError
+    )
+    return bridge.map { Unmanaged.passRetained($0).toOpaque() }
+}
+
+@_cdecl("ava_input_node_speech_activity_unsubscribe")
+public func ava_input_node_speech_activity_unsubscribe(_ handle: UnsafeMutableRawPointer) {
+    let bridge = Unmanaged<MutedSpeechActivityStreamBridge>.fromOpaque(handle).takeUnretainedValue()
+    bridge.cancel()
+    Unmanaged<MutedSpeechActivityStreamBridge>.fromOpaque(handle).release()
+}
+
 struct TapEventPayload {
     var frameLength: UInt32
     var channelCount: UInt32

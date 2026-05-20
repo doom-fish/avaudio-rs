@@ -15,13 +15,15 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
 - `AVAudioApplication` permission/input-mute queries and `AVAudioUnitComponentManager` discovery snapshots/constants.
 - `AVAudioSession`-style session queries with a macOS-friendly compatibility stub.
 - Optional Rust callbacks for `AVAudioPlayerNode`, `AVAudioSourceNode`, `AVAudioSinkNode`, `AVAudioSequencer`, `AVAudioPlayerDelegate`, and `AVAudioRecorderDelegate` blocks/callbacks.
-- Optional `async` feature exposing executor-agnostic stream wrappers for engine configuration changes, player-node completions, recorder/player delegates, and `AVAudioNode.installTap` events.
+- Optional `async` feature exposing executor-agnostic future/stream wrappers for record permission, muted-speech activity, engine configuration changes, player-node completions, recorder/player delegates, and `AVAudioNode.installTap` events.
 
 See [COVERAGE.md](COVERAGE.md) for the API coverage table.
 
-## Async streams
+## Async futures and streams
 
-Enable the `async` feature to use `avaudio::async_api` and the Tier-2 stream wrappers built on `doom-fish-utils::stream::BoundedAsyncStream`. `TapBufferStream` is special-cased to use `doom-fish-utils::spsc::SpscRing` on the `CoreAudio` render thread; if the consumer falls behind, the oldest buffered tap event is overwritten.
+Enable the `async` feature to use `avaudio::async_api` and executor-agnostic wrappers around `AVFAudio`'s callback surfaces. `AsyncAudioApplication::request_record_permission` exposes the one-shot microphone permission callback as a `Future`; `MutedSpeechActivityStream`, `ConfigChangeStream`, `PlayerNodeCompletionStream`, `RecorderEventStream`, `SimplePlayerEventStream`, and `TapBufferStream` expose event/listener surfaces as bounded async streams.
+
+`TapBufferStream` is special-cased to use `doom-fish-utils::spsc::SpscRing` on the `CoreAudio` render thread; every other stream uses `doom-fish-utils::stream::BoundedAsyncStream`. As with the underlying Apple API, only one muted-speech activity listener should be active per input node at a time.
 
 ```bash
 cargo run --features async --example 26_async_config_change

@@ -39,6 +39,22 @@ fn config_change_stream_subscribe_drop() {
 }
 
 #[test]
+fn muted_speech_activity_stream_subscribe_drop() {
+    let Some(engine) = make_engine() else {
+        return;
+    };
+    let Ok(input) = engine.input_node() else {
+        return;
+    };
+    let Ok(stream) = MutedSpeechActivityStream::subscribe(&input, 4) else {
+        return;
+    };
+    assert_eq!(stream.buffered_count(), 0);
+    assert!(stream.try_next().is_none());
+    drop(stream);
+}
+
+#[test]
 fn player_node_completion_stream_basic() {
     let Some(engine) = make_engine() else {
         return;

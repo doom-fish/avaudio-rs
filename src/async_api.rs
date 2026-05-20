@@ -1,4 +1,23 @@
-//! Async stream wrappers for `AVFAudio` notifications, delegates, and taps.
+//! Async futures and stream wrappers for `AVFAudio` permission, notification,
+//! delegate, and tap surfaces.
+//!
+//! Enable with the `async` Cargo feature.
+//!
+//! ## Available types
+//!
+//! | Type | Apple API wrapped |
+//! |------|-------------------|
+//! | [`AsyncAudioApplication`] / [`RecordPermissionFuture`] | `AVAudioApplication.requestRecordPermission(completionHandler:)` |
+//! | [`ConfigChangeStream`] | `AVAudioEngineConfigurationChangeNotification` |
+//! | [`MutedSpeechActivityStream`] | `AVAudioInputNode.setMutedSpeechActivityEventListener(_:)` |
+//! | [`PlayerNodeCompletionStream`] | `AVAudioPlayerNode` typed completion callbacks |
+//! | [`RecorderEventStream`] | `AVAudioRecorderDelegate` finish / encode-error callbacks |
+//! | [`SimplePlayerEventStream`] | `AVAudioPlayerDelegate` finish / decode-error callbacks |
+//! | [`TapBufferStream`] | `AVAudioNode.installTap(onBus:bufferSize:format:block:)` |
+//!
+//! `TapBufferStream` is special-cased to use `doom-fish-utils::spsc::SpscRing`
+//! on the `CoreAudio` render thread; every other stream uses
+//! `doom-fish-utils::stream::BoundedAsyncStream`.
 
 #![allow(
     clippy::missing_errors_doc,
@@ -9,7 +28,11 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 use std::ffi::CStr;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
+use doom_fish_utils::completion::{AsyncCompletion, AsyncCompletionFuture};
 use doom_fish_utils::panic_safe::catch_user_panic;
 use doom_fish_utils::spsc::{PopFuture as SpscPopFuture, SpscConsumer, SpscProducer, SpscRing};
 use doom_fish_utils::stream::{AsyncStreamSender, BoundedAsyncStream, NextItem};
@@ -19,6 +42,8 @@ use crate::engine::AudioEngine;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::format::AudioFormat;
+use crate::input_node::AudioInputNode;
+use crate::io_node::AudioVoiceProcessingSpeechActivityEvent;
 use crate::node::AudioNodeHandle;
 use crate::pcm_buffer::PCMBuffer;
 use crate::player::{AudioPlayerNode, AudioPlayerNodeBufferOptions};
@@ -93,6 +118,70 @@ fn drop_boxed_ptr<T>(raw: &mut *mut T) {
     }
 }
 
+unsafe extern "C" fn record_permission_cb(userdata: *mut c_void, granted: bool) {
+    catch_user_panic("record_permission_cb", || {
+        // SAFETY: `userdata` is the `AsyncCompletion::create` context pointer
+        // passed directly to `AVAudioApplication.requestRecordPermission`.
+        unsafe {
+            AsyncCompletion::<Result<bool, AVAudioError>>::complete_ok(userdata, Ok(granted));
+        }
+    });
+}
+
+/// Future returned by [`AsyncAudioApplication::request_record_permission`].
+pub struct RecordPermissionFuture {
+    inner: AsyncCompletionFuture<Result<bool, AVAudioError>>,
+}
+
+impl core::fmt::Debug for RecordPermissionFuture {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("RecordPermissionFuture")
+            .finish_non_exhaustive()
+    }
+}
+
+impl Future for RecordPermissionFuture {
+    type Output = Result<bool, AVAudioError>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match Pin::new(&mut self.inner).poll(cx) {
+            Poll::Pending => Poll::Pending,
+            Poll::Ready(Ok(result)) => Poll::Ready(result),
+            Poll::Ready(Err(message)) => Poll::Ready(Err(AVAudioError::OperationFailed(message))),
+        }
+    }
+}
+
+/// Async entry points for `AVAudioApplication`.
+pub struct AsyncAudioApplication;
+
+impl AsyncAudioApplication {
+    /// Request microphone-record permission asynchronously.
+    #[must_use]
+    pub fn request_record_permission() -> RecordPermissionFuture {
+        let (future, ctx) = AsyncCompletion::<Result<bool, AVAudioError>>::create();
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            ffi::av_audio_application_request_record_permission(
+                Some(record_permission_cb),
+                ctx,
+                None,
+                &mut err,
+            )
+        };
+        if status != ffi::status::OK {
+            let error = unsafe { from_swift(status, err) };
+            // SAFETY: `ctx` is the still-live `AsyncCompletion` context pointer
+            // created above. No Swift callback will fire after a synchronous
+            // registration failure.
+            unsafe {
+                AsyncCompletion::<Result<bool, AVAudioError>>::complete_ok(ctx, Err(error));
+            }
+        }
+        RecordPermissionFuture { inner: future }
+    }
+}
+
 pub struct ConfigChangeStream {
     inner: BoundedAsyncStream<ConfigChangeEvent>,
     bridge_ptr: *mut c_void,
@@ -148,6 +237,87 @@ impl ConfigChangeStream {
     }
 
     pub fn try_next(&self) -> Option<ConfigChangeEvent> {
+        self.inner.try_next()
+    }
+
+    pub fn buffered_count(&self) -> usize {
+        self.inner.buffered_count()
+    }
+}
+
+pub struct MutedSpeechActivityStream {
+    inner: BoundedAsyncStream<AudioVoiceProcessingSpeechActivityEvent>,
+    bridge_ptr: *mut c_void,
+    sender_raw: *mut AsyncStreamSender<AudioVoiceProcessingSpeechActivityEvent>,
+}
+
+// SAFETY: `bridge_ptr` is an AVFoundation-owned opaque listener handle. The
+// bridge serializes teardown before `sender_raw` is reclaimed, and
+// `BoundedAsyncStream` is `Send`.
+unsafe impl Send for MutedSpeechActivityStream {}
+
+impl Drop for MutedSpeechActivityStream {
+    fn drop(&mut self) {
+        if !self.bridge_ptr.is_null() {
+            unsafe { ffi::ava_input_node_speech_activity_unsubscribe(self.bridge_ptr) };
+            self.bridge_ptr = ptr::null_mut();
+        }
+        drop_boxed_ptr(&mut self.sender_raw);
+    }
+}
+
+unsafe extern "C" fn muted_speech_activity_cb(
+    kind: i32,
+    _payload: *const c_void,
+    ctx: *mut c_void,
+) {
+    catch_user_panic("muted_speech_activity_cb", || {
+        let Some(sender) = ctx
+            .cast::<AsyncStreamSender<AudioVoiceProcessingSpeechActivityEvent>>()
+            .as_ref()
+        else {
+            return;
+        };
+        sender.push(AudioVoiceProcessingSpeechActivityEvent::from_raw(
+            i64::from(kind),
+        ));
+    });
+}
+
+impl MutedSpeechActivityStream {
+    /// Subscribe to muted-speech activity events for an input node.
+    ///
+    /// Only one muted-speech listener should be active per input node at a
+    /// time. Avoid mixing this stream with the synchronous
+    /// `set_muted_speech_activity_event_listener` API on the same node.
+    pub fn subscribe(input: &AudioInputNode, capacity: usize) -> Result<Self, AVAudioError> {
+        let (stream, sender) = BoundedAsyncStream::new(capacity);
+        let mut sender_raw = Box::into_raw(Box::new(sender));
+        let mut err: *mut c_char = ptr::null_mut();
+        let bridge_ptr = unsafe {
+            ffi::ava_input_node_speech_activity_subscribe(
+                input.ptr,
+                muted_speech_activity_cb,
+                sender_raw.cast::<c_void>(),
+                &mut err,
+            )
+        };
+        if bridge_ptr.is_null() {
+            drop_boxed_ptr(&mut sender_raw);
+            return Err(unsafe { from_swift(ffi::status::CALLBACK_ERROR, err) });
+        }
+        Ok(Self {
+            inner: stream,
+            bridge_ptr,
+            sender_raw,
+        })
+    }
+
+    pub const fn next(&self) -> NextItem<'_, AudioVoiceProcessingSpeechActivityEvent> {
+        self.inner.next()
+    }
+
+    pub fn try_next(&self) -> Option<AudioVoiceProcessingSpeechActivityEvent> {
         self.inner.try_next()
     }
 

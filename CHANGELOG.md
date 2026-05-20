@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0] - 2026-05-20
+
+### Added
+
+- `AsyncAudioApplication::request_record_permission` plus `RecordPermissionFuture` for the one-shot `AVAudioApplication` permission callback.
+- `MutedSpeechActivityStream` for `AVAudioInputNode.setMutedSpeechActivityEventListener(_:)`, matching the existing bounded async-stream style.
+- Refreshed async README/docs and added a subscribe/drop async test for muted-speech activity listeners.
+
+### Notes
+
+- Phase 32 completeness + async sweep.
+
 ## [0.4.2] - 2026-05-20
 
 - Added in-`src/` unit tests across `format`, `converter`, `io_node`, `types`, and `error` (Tier 2 quality polish), providing fast `cargo test --lib` fail-fast signal alongside the existing integration tests under `tests/`.
