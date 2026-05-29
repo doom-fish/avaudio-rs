@@ -101,6 +101,35 @@ struct TapEventPayloadRaw {
     sample_rate: f64,
 }
 
+// MARK: - ABI Layout Assertions
+//
+// `TapEventPayloadRaw` is read by value on the `CoreAudio` high-priority render
+// thread inside `tap_event_cb`, from a pointer handed over by the Swift bridge.
+// Its Swift counterpart must match this `#[repr(C)]` layout exactly; if a field
+// type, field order, or padding ever drifts on either side, the render thread
+// silently reads corrupt audio metadata.
+//
+// These compile-time assertions pin the exact size and alignment of the struct
+// so accidental layout changes fail `cargo build` immediately. The crate's MSRV
+// is 1.76, so `offset_of!` (stabilised in 1.77) is unavailable; size + alignment
+// are used instead. `verify_ffi_layout` re-checks the same invariants at runtime
+// and is exercised by the unit test at the bottom of this module.
+const _: () = assert!(core::mem::size_of::<TapEventPayloadRaw>() == 16);
+const _: () = assert!(core::mem::align_of::<TapEventPayloadRaw>() == 8);
+
+/// Runtime mirror of the compile-time ABI layout assertions for
+/// `TapEventPayloadRaw`, the `#[repr(C)]` struct consumed on the render thread.
+///
+/// Returns `true` only if the size and alignment match the values pinned at
+/// compile time. A `false` return means the Rust layout drifted from what the
+/// Swift bridge produces, i.e. a real ABI bug.
+#[allow(dead_code)]
+const fn verify_ffi_layout() -> bool {
+    use core::mem::{align_of, size_of};
+
+    size_of::<TapEventPayloadRaw>() == 16 && align_of::<TapEventPayloadRaw>() == 8
+}
+
 const TAP_BUFFER_STREAM_MAX_CAPACITY: usize = 4096;
 
 type TapBufferProducer = SpscProducer<TapBufferEvent, TAP_BUFFER_STREAM_MAX_CAPACITY>;
@@ -714,5 +743,33 @@ impl TapBufferStream {
 
     pub fn buffered_count(&self) -> usize {
         self.inner.buffered_count()
+    }
+}
+
+#[cfg(test)]
+mod ffi_layout_tests {
+    use super::{verify_ffi_layout, TapEventPayloadRaw};
+    use core::mem::{align_of, size_of};
+
+    #[test]
+    fn tap_event_payload_raw_layout() {
+        assert_eq!(
+            size_of::<TapEventPayloadRaw>(),
+            16,
+            "TapEventPayloadRaw size drifted"
+        );
+        assert_eq!(
+            align_of::<TapEventPayloadRaw>(),
+            8,
+            "TapEventPayloadRaw alignment drifted"
+        );
+    }
+
+    #[test]
+    fn ffi_layout_self_consistent() {
+        assert!(
+            verify_ffi_layout(),
+            "TapEventPayloadRaw layout drifted from the pinned ABI"
+        );
     }
 }
