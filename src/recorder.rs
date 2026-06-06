@@ -15,6 +15,8 @@ use std::path::Path;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 fn channel_to_i32(channel: usize) -> Result<i32, AVAudioError> {
     i32::try_from(channel)
         .map_err(|_| AVAudioError::InvalidArgument("channel index exceeds Int32 range".into()))
@@ -198,7 +200,7 @@ unsafe extern "C" fn recorder_finish_trampoline(userdata: *mut c_void, success: 
         return;
     };
     if let Some(callback) = state.did_finish_recording.as_mut() {
-        callback(success);
+        catch_user_panic("recorder_finish_trampoline", || callback(success));
     }
 }
 
@@ -207,14 +209,16 @@ unsafe extern "C" fn recorder_encode_error_trampoline(userdata: *mut c_void, mes
         return;
     };
     if let Some(callback) = state.encode_error.as_mut() {
-        let value = if message.is_null() {
-            None
-        } else {
-            let decoded = CStr::from_ptr(message).to_string_lossy().into_owned();
-            unsafe { ffi::ava_string_free(message) };
-            Some(decoded)
-        };
-        callback(value);
+        catch_user_panic("recorder_encode_error_trampoline", || {
+            let value = if message.is_null() {
+                None
+            } else {
+                let decoded = CStr::from_ptr(message).to_string_lossy().into_owned();
+                unsafe { ffi::ava_string_free(message) };
+                Some(decoded)
+            };
+            callback(value);
+        });
     } else if !message.is_null() {
         unsafe { ffi::ava_string_free(message) };
     }

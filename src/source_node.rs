@@ -10,6 +10,8 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::format::AudioFormat;
@@ -158,10 +160,13 @@ unsafe extern "C" fn source_render_trampoline(
         frame_count,
         output_data_ptr: output_data,
     };
-    let status = (state.callback)(&mut context);
-    if let Some(is_silence) = is_silence.as_mut() {
-        *is_silence = context.is_silence;
-    }
+    let mut status = ffi::status::CALLBACK_ERROR;
+    catch_user_panic("source_render_trampoline", || {
+        status = (state.callback)(&mut context);
+        if let Some(is_silence) = is_silence.as_mut() {
+            *is_silence = context.is_silence;
+        }
+    });
     status
 }
 

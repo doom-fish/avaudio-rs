@@ -15,6 +15,8 @@ use serde::Deserialize;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 /// Mirrors `AVAudioRoutingArbitrationCategory`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -106,16 +108,18 @@ unsafe extern "C" fn routing_begin_result_trampoline(userdata: *mut c_void, mess
     let Some(state) = userdata.cast::<RoutingArbitrationState>().as_mut() else {
         return;
     };
-    if message.is_null() {
-        (state.callback)(false, None);
-        return;
-    }
-    let json = CStr::from_ptr(message).to_string_lossy().into_owned();
-    unsafe { ffi::ava_string_free(message) };
-    match serde_json::from_str::<RoutingArbitrationResult>(&json) {
-        Ok(result) => (state.callback)(result.default_device_changed, result.error),
-        Err(_) => (state.callback)(false, Some(json)),
-    }
+    catch_user_panic("routing_begin_result_trampoline", || {
+        if message.is_null() {
+            (state.callback)(false, None);
+            return;
+        }
+        let json = CStr::from_ptr(message).to_string_lossy().into_owned();
+        unsafe { ffi::ava_string_free(message) };
+        match serde_json::from_str::<RoutingArbitrationResult>(&json) {
+            Ok(result) => (state.callback)(result.default_device_changed, result.error),
+            Err(_) => (state.callback)(false, Some(json)),
+        }
+    });
 }
 
 unsafe extern "C" fn routing_begin_drop(userdata: *mut c_void) {

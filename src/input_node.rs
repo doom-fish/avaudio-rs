@@ -22,6 +22,8 @@ use crate::node::AudioNodeHandle;
 use crate::pcm_buffer::PCMBuffer;
 use crate::util::parse_json_and_free;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 fn bus_to_i32(bus: usize) -> Result<i32, AVAudioError> {
     i32::try_from(bus)
         .map_err(|_| AVAudioError::InvalidArgument("bus index exceeds Int32 range".into()))
@@ -330,7 +332,11 @@ unsafe extern "C" fn manual_rendering_input_trampoline(
     let Some(state) = userdata.cast::<ManualRenderingInputState>().as_mut() else {
         return ptr::null_mut();
     };
-    (state.callback)(frame_count).map_or(ptr::null_mut(), |input| input.ptr)
+    let mut out = ptr::null_mut();
+    catch_user_panic("manual_rendering_input_trampoline", || {
+        out = (state.callback)(frame_count).map_or(ptr::null_mut(), |input| input.ptr);
+    });
+    out
 }
 
 unsafe extern "C" fn manual_rendering_input_drop(userdata: *mut c_void) {
@@ -344,7 +350,9 @@ unsafe extern "C" fn speech_activity_listener_trampoline(userdata: *mut c_void, 
     let Some(state) = userdata.cast::<SpeechActivityListenerState>().as_mut() else {
         return;
     };
-    (state.callback)(AudioVoiceProcessingSpeechActivityEvent::from_raw(value));
+    catch_user_panic("speech_activity_listener_trampoline", || {
+        (state.callback)(AudioVoiceProcessingSpeechActivityEvent::from_raw(value));
+    });
 }
 
 unsafe extern "C" fn speech_activity_listener_drop(userdata: *mut c_void) {

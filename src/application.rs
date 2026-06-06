@@ -13,6 +13,8 @@ use core::ptr;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 /// Record-permission state reported by `AVAudioApplication`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -135,7 +137,7 @@ unsafe extern "C" fn record_permission_trampoline(userdata: *mut c_void, granted
     let Some(state) = userdata.cast::<RecordPermissionCallbackState>().as_mut() else {
         return;
     };
-    (state.callback)(granted);
+    catch_user_panic("record_permission_trampoline", || (state.callback)(granted));
 }
 
 unsafe extern "C" fn record_permission_drop(userdata: *mut c_void) {

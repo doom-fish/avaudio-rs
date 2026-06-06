@@ -16,6 +16,8 @@ use crate::mixing::AudioMixingHandle;
 use crate::node::AudioNodeHandle;
 use crate::time::AudioTime;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioPlayerNodeInfo {
@@ -367,7 +369,7 @@ unsafe extern "C" fn completion_trampoline(userdata: *mut c_void) {
     let Some(state) = userdata.cast::<CompletionState>().as_mut() else {
         return;
     };
-    (state.callback)();
+    catch_user_panic("completion_trampoline", || (state.callback)());
 }
 
 unsafe extern "C" fn completion_drop(userdata: *mut c_void) {
@@ -381,7 +383,9 @@ unsafe extern "C" fn typed_completion_trampoline(userdata: *mut c_void, value: i
     let Some(state) = userdata.cast::<TypedCompletionState>().as_mut() else {
         return;
     };
-    (state.callback)(AudioPlayerNodeCompletionCallbackType::from_raw(value));
+    catch_user_panic("typed_completion_trampoline", || {
+        (state.callback)(AudioPlayerNodeCompletionCallbackType::from_raw(value));
+    });
 }
 
 unsafe extern "C" fn typed_completion_drop(userdata: *mut c_void) {

@@ -23,6 +23,8 @@ use crate::ffi;
 use crate::music_track::MusicTrack;
 use crate::util::parse_json_and_free;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 fn path_to_cstring(path: impl AsRef<Path>) -> Result<CString, AVAudioError> {
     let path = path
         .as_ref()
@@ -559,10 +561,12 @@ unsafe extern "C" fn sequencer_user_callback_trampoline(
     } else {
         std::slice::from_raw_parts(bytes_ptr, bytes_len).to_vec()
     };
-    (state.callback)(AudioSequencerUserEvent {
-        track_ptr,
-        bytes,
-        beat,
+    catch_user_panic("sequencer_user_callback_trampoline", || {
+        (state.callback)(AudioSequencerUserEvent {
+            track_ptr,
+            bytes,
+            beat,
+        });
     });
 }
 

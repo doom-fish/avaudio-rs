@@ -24,6 +24,8 @@ use crate::unit::AudioUnit;
 use crate::unit_effect::AudioUnitHandle;
 use crate::util::parse_json_and_free;
 
+use doom_fish_utils::panic_safe::catch_user_panic;
+
 /// `AVMusicTimeStampEndOfTrack`.
 pub const MUSIC_TIME_STAMP_END_OF_TRACK: f64 = f64::MAX;
 /// `AVMusicTrackLoopCountForever`.
@@ -421,12 +423,16 @@ unsafe extern "C" fn enumeration_trampoline(
             return ffi::status::CALLBACK_ERROR;
         }
     };
-    let action = (state.callback)(TrackEvent { beat, event });
-    if !new_beat_out.is_null() {
-        unsafe { *new_beat_out = action.new_beat.unwrap_or(beat) };
-    }
-    if !remove_out.is_null() {
-        unsafe { *remove_out = action.remove };
-    }
-    ffi::status::OK
+    let mut status = ffi::status::CALLBACK_ERROR;
+    catch_user_panic("enumeration_trampoline", || {
+        let action = (state.callback)(TrackEvent { beat, event });
+        if !new_beat_out.is_null() {
+            unsafe { *new_beat_out = action.new_beat.unwrap_or(beat) };
+        }
+        if !remove_out.is_null() {
+            unsafe { *remove_out = action.remove };
+        }
+        status = ffi::status::OK;
+    });
+    status
 }
