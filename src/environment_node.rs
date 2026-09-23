@@ -97,7 +97,7 @@ impl AudioEnvironmentNode {
     pub fn listener_position(&self) -> Result<AudioListenerPosition, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe {
-            ffi::av_audio_environment_node_get_listener_position_json(self.ptr, &mut err)
+            ffi::av_audio_environment_node_get_listener_position_json(self.ptr, &raw mut err)
         };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -116,7 +116,7 @@ impl AudioEnvironmentNode {
     pub fn listener_orientation(&self) -> Result<AudioListenerOrientation, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe {
-            ffi::av_audio_environment_node_get_listener_orientation_json(self.ptr, &mut err)
+            ffi::av_audio_environment_node_get_listener_orientation_json(self.ptr, &raw mut err)
         };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -147,7 +147,7 @@ impl AudioEnvironmentNode {
     pub fn distance_attenuation(&self) -> Result<AudioDistanceAttenuation, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe {
-            ffi::av_audio_environment_node_get_distance_attenuation_json(self.ptr, &mut err)
+            ffi::av_audio_environment_node_get_distance_attenuation_json(self.ptr, &raw mut err)
         };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });

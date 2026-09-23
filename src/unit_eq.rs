@@ -100,7 +100,7 @@ impl AudioUnitEQ {
         let band_count = i32::try_from(number_of_bands)
             .map_err(|_| AVAudioError::InvalidArgument("band count exceeds Int32 range".into()))?;
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_unit_eq_create(band_count, &mut err) };
+        let ptr = unsafe { ffi::av_audio_unit_eq_create(band_count, &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -127,7 +127,7 @@ impl AudioUnitEQ {
         let band_index = band_to_i32(band_index)?;
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
-            unsafe { ffi::av_audio_unit_eq_get_band_info_json(self.ptr, band_index, &mut err) };
+            unsafe { ffi::av_audio_unit_eq_get_band_info_json(self.ptr, band_index, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -151,7 +151,7 @@ impl AudioUnitEQ {
                 params.bandwidth,
                 params.gain,
                 params.bypass,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

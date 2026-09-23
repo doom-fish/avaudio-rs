@@ -56,7 +56,7 @@ impl AudioUnitTimeEffect {
                 description.component_manufacturer,
                 description.component_flags,
                 description.component_flags_mask,
-                &mut err,
+                &raw mut err,
             )
         };
         if ptr.is_null() {

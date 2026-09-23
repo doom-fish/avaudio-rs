@@ -195,7 +195,7 @@ impl AsyncAudioApplication {
                 Some(record_permission_cb),
                 ctx,
                 None,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -328,7 +328,7 @@ impl MutedSpeechActivityStream {
                 input.ptr,
                 muted_speech_activity_cb,
                 sender_raw.cast::<c_void>(),
-                &mut err,
+                &raw mut err,
             )
         };
         if bridge_ptr.is_null() {
@@ -416,7 +416,7 @@ impl PlayerNodeCompletionStream {
                 self.bridge_ptr,
                 buffer.ptr,
                 options.bits(),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -428,7 +428,7 @@ impl PlayerNodeCompletionStream {
     pub fn schedule_file(&self, file: &AudioFile) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::ava_player_node_stream_schedule_file(self.bridge_ptr, file.ptr, &mut err)
+            ffi::ava_player_node_stream_schedule_file(self.bridge_ptr, file.ptr, &raw mut err)
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });

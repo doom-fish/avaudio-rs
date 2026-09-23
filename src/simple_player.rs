@@ -82,7 +82,8 @@ impl AudioSimplePlayer {
             AVAudioError::InvalidArgument(format!("path contains NUL byte: {error}"))
         })?;
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_simple_player_create_from_path(path.as_ptr(), &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_simple_player_create_from_path(path.as_ptr(), &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::PLAYER_ERROR, err) });
         }
@@ -109,7 +110,7 @@ impl AudioSimplePlayer {
                 Some(simple_player_decode_error_trampoline),
                 userdata,
                 Some(simple_player_delegate_drop),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

@@ -103,7 +103,7 @@ impl AudioUnitComponentManager {
     /// Returns all user and system tags known to the component manager.
     pub fn tag_names(&self) -> Result<Vec<String>, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_unit_component_manager_tag_names_json(&mut err) };
+        let json_ptr = unsafe { ffi::av_audio_unit_component_manager_tag_names_json(&raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -114,7 +114,7 @@ impl AudioUnitComponentManager {
     pub fn standard_localized_tag_names(&self) -> Result<Vec<String>, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe {
-            ffi::av_audio_unit_component_manager_standard_localized_tag_names_json(&mut err)
+            ffi::av_audio_unit_component_manager_standard_localized_tag_names_json(&raw mut err)
         };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -125,7 +125,8 @@ impl AudioUnitComponentManager {
     /// Returns lightweight snapshots of installed audio-unit components.
     pub fn components(&self) -> Result<Vec<AudioUnitComponentInfo>, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_unit_component_manager_components_json(&mut err) };
+        let json_ptr =
+            unsafe { ffi::av_audio_unit_component_manager_components_json(&raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -135,7 +136,7 @@ impl AudioUnitComponentManager {
     /// Returns the standard AVAudioUnit component type/manufacturer strings.
     pub fn standard_constants(&self) -> Result<AudioUnitComponentConstants, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_unit_component_constants_json(&mut err) };
+        let json_ptr = unsafe { ffi::av_audio_unit_component_constants_json(&raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

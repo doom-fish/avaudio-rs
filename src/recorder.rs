@@ -99,7 +99,13 @@ impl AudioRecorder {
             .map_err(|_| AVAudioError::InvalidArgument("bit depth exceeds Int32 range".into()))?;
         let mut err: *mut c_char = ptr::null_mut();
         let ptr = unsafe {
-            ffi::av_audio_recorder_create(path.as_ptr(), sample_rate, channels, bit_depth, &mut err)
+            ffi::av_audio_recorder_create(
+                path.as_ptr(),
+                sample_rate,
+                channels,
+                bit_depth,
+                &raw mut err,
+            )
         };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -127,7 +133,7 @@ impl AudioRecorder {
                 Some(recorder_encode_error_trampoline),
                 userdata,
                 Some(recorder_delegate_drop),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

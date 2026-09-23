@@ -56,7 +56,7 @@ impl AudioOutputNode {
         let bus = bus_to_i32(bus)?;
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
-            unsafe { ffi::av_audio_output_node_output_format_json(self.ptr, bus, &mut err) };
+            unsafe { ffi::av_audio_output_node_output_format_json(self.ptr, bus, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

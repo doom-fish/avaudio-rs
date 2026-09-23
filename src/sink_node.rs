@@ -76,7 +76,7 @@ impl AudioSinkNode {
         let (callback_fn, userdata, drop_fn) = sink_render_callback_parts(callback);
         let mut err: *mut c_char = ptr::null_mut();
         let ptr =
-            unsafe { ffi::av_audio_sink_node_create(callback_fn, userdata, drop_fn, &mut err) };
+            unsafe { ffi::av_audio_sink_node_create(callback_fn, userdata, drop_fn, &raw mut err) };
         if ptr.is_null() {
             if let Some(drop_fn) = drop_fn {
                 unsafe { drop_fn(userdata) };

@@ -40,7 +40,8 @@ impl Drop for PCMBuffer {
 impl PCMBuffer {
     pub fn new(format: &AudioFormat, frame_capacity: u32) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_pcm_buffer_create(format.ptr, frame_capacity, &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_pcm_buffer_create(format.ptr, frame_capacity, &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::FORMAT_ERROR, err) });
         }
@@ -49,7 +50,7 @@ impl PCMBuffer {
 
     pub fn info(&self) -> Result<PCMBufferInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_pcm_buffer_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_pcm_buffer_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::FILE_ERROR, err) });
         }
@@ -66,8 +67,9 @@ impl PCMBuffer {
 
     pub fn set_frame_length(&mut self, frame_length: u32) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status =
-            unsafe { ffi::av_audio_pcm_buffer_set_frame_length(self.ptr, frame_length, &mut err) };
+        let status = unsafe {
+            ffi::av_audio_pcm_buffer_set_frame_length(self.ptr, frame_length, &raw mut err)
+        };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }

@@ -36,7 +36,7 @@ impl AudioSettingsConstants {
     /// Returns the current AVFoundation constant values.
     pub fn current() -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_settings_constants_json(&mut err) };
+        let json_ptr = unsafe { ffi::av_audio_settings_constants_json(&raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

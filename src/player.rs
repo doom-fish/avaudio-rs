@@ -124,7 +124,7 @@ impl AudioMixingHandle for AudioPlayerNode {
 impl AudioPlayerNode {
     pub fn new() -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_player_node_create(&mut err) };
+        let ptr = unsafe { ffi::av_audio_player_node_create(&raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::PLAYER_ERROR, err) });
         }
@@ -133,7 +133,7 @@ impl AudioPlayerNode {
 
     pub fn info(&self) -> Result<AudioPlayerNodeInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_player_node_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_player_node_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::PLAYER_ERROR, err) });
         }
@@ -203,7 +203,7 @@ impl AudioPlayerNode {
                 None,
                 ptr::null_mut(),
                 None,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -239,7 +239,7 @@ impl AudioPlayerNode {
                 Some(typed_completion_trampoline),
                 userdata,
                 Some(typed_completion_drop),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -274,7 +274,7 @@ impl AudioPlayerNode {
                 Some(typed_completion_trampoline),
                 userdata,
                 Some(typed_completion_drop),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -301,7 +301,7 @@ impl AudioPlayerNode {
                 callback_fn,
                 userdata,
                 drop_fn,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -330,7 +330,7 @@ impl AudioPlayerNode {
                 callback_fn,
                 userdata,
                 drop_fn,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

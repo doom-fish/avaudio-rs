@@ -185,7 +185,7 @@ impl AudioUnit {
                 description.component_flags,
                 description.component_flags_mask,
                 options.bits(),
-                &mut err,
+                &raw mut err,
             )
         };
         if ptr.is_null() {
@@ -197,7 +197,7 @@ impl AudioUnit {
     /// Returns `AVAudioUnit` metadata.
     pub fn metadata(&self) -> Result<AudioUnitMetadata, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_unit_metadata_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_unit_metadata_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -209,7 +209,7 @@ impl AudioUnit {
         let path = path_to_cstring(path)?;
         let mut err: *mut c_char = ptr::null_mut();
         let status =
-            unsafe { ffi::av_audio_unit_load_preset_at_url(self.ptr, path.as_ptr(), &mut err) };
+            unsafe { ffi::av_audio_unit_load_preset_at_url(self.ptr, path.as_ptr(), &raw mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }

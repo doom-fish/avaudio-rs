@@ -193,7 +193,7 @@ pub trait AudioUnitMIDIInstrumentHandle: AudioUnitHandle {
                 self.as_midi_instrument_ptr(),
                 protocol as i32,
                 json.as_ptr(),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -250,7 +250,7 @@ impl AudioUnitMIDIInstrument {
                 description.component_manufacturer,
                 description.component_flags,
                 description.component_flags_mask,
-                &mut err,
+                &raw mut err,
             )
         };
         if ptr.is_null() {

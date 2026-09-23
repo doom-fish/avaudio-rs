@@ -177,7 +177,7 @@ impl AudioSequencer {
     /// Creates a sequencer with no audio-engine association.
     pub fn new() -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_sequencer_create(&mut err) };
+        let ptr = unsafe { ffi::av_audio_sequencer_create(&raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -187,8 +187,9 @@ impl AudioSequencer {
     /// Creates a sequencer bound to an `AudioEngine`.
     pub fn with_engine(engine: &AudioEngine) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr =
-            unsafe { ffi::av_audio_sequencer_create_with_engine(engine.as_engine_ptr(), &mut err) };
+        let ptr = unsafe {
+            ffi::av_audio_sequencer_create_with_engine(engine.as_engine_ptr(), &raw mut err)
+        };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -198,7 +199,7 @@ impl AudioSequencer {
     /// Returns current transport and track metadata.
     pub fn info(&self) -> Result<AudioSequencerInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_sequencer_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_sequencer_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -208,7 +209,7 @@ impl AudioSequencer {
     /// Returns the bridged `AVAudioSequencerInfoDictionaryKey` constants.
     pub fn info_dictionary_keys() -> Result<AudioSequencerInfoDictionaryKeys, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_sequencer_info_dictionary_keys_json(&mut err) };
+        let json_ptr = unsafe { ffi::av_audio_sequencer_info_dictionary_keys_json(&raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -218,7 +219,7 @@ impl AudioSequencer {
     /// Returns the sequence metadata dictionary as JSON-like values.
     pub fn user_info(&self) -> Result<BTreeMap<String, Value>, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_sequencer_user_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_sequencer_user_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -239,7 +240,12 @@ impl AudioSequencer {
         let path = path_to_cstring(path)?;
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_audio_sequencer_load_from_url(self.ptr, path.as_ptr(), options.bits(), &mut err)
+            ffi::av_audio_sequencer_load_from_url(
+                self.ptr,
+                path.as_ptr(),
+                options.bits(),
+                &raw mut err,
+            )
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
@@ -270,7 +276,7 @@ impl AudioSequencer {
                 bytes,
                 data.len(),
                 options.bits(),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -294,7 +300,7 @@ impl AudioSequencer {
                 path.as_ptr(),
                 smpte_resolution,
                 replace_existing,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -311,7 +317,12 @@ impl AudioSequencer {
         let mut out_len = 0usize;
         let mut err: *mut c_char = ptr::null_mut();
         let ptr = unsafe {
-            ffi::av_audio_sequencer_copy_data(self.ptr, smpte_resolution, &mut out_len, &mut err)
+            ffi::av_audio_sequencer_copy_data(
+                self.ptr,
+                smpte_resolution,
+                &raw mut out_len,
+                &raw mut err,
+            )
         };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -328,7 +339,7 @@ impl AudioSequencer {
     /// Reverses events across all tracks when supported by the OS.
     pub fn reverse_events(&self) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_sequencer_reverse_events(self.ptr, &mut err) };
+        let status = unsafe { ffi::av_audio_sequencer_reverse_events(self.ptr, &raw mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -345,7 +356,8 @@ impl AudioSequencer {
         let index = isize::try_from(index)
             .map_err(|_| AVAudioError::InvalidArgument("track index exceeds isize::MAX".into()))?;
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_sequencer_copy_track_at_index(self.ptr, index, &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_sequencer_copy_track_at_index(self.ptr, index, &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -361,7 +373,7 @@ impl AudioSequencer {
     /// Returns the tempo track when one exists.
     pub fn tempo_track(&self) -> Result<Option<MusicTrack>, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_sequencer_copy_tempo_track(self.ptr, &mut err) };
+        let ptr = unsafe { ffi::av_audio_sequencer_copy_tempo_track(self.ptr, &raw mut err) };
         if ptr.is_null() {
             return if err.is_null() {
                 Ok(None)
@@ -375,7 +387,8 @@ impl AudioSequencer {
     /// Appends a new track and returns it.
     pub fn create_and_append_track(&self) -> Result<MusicTrack, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_sequencer_create_and_append_track(self.ptr, &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_sequencer_create_and_append_track(self.ptr, &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -387,7 +400,7 @@ impl AudioSequencer {
     pub fn remove_track(&self, track: MusicTrack) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_audio_sequencer_remove_track(self.ptr, track.as_track_ptr(), &mut err)
+            ffi::av_audio_sequencer_remove_track(self.ptr, track.as_track_ptr(), &raw mut err)
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
@@ -444,7 +457,7 @@ impl AudioSequencer {
     pub fn host_time_for_beats(&self, beats: f64) -> Result<u64, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let host_time =
-            unsafe { ffi::av_audio_sequencer_host_time_for_beats(self.ptr, beats, &mut err) };
+            unsafe { ffi::av_audio_sequencer_host_time_for_beats(self.ptr, beats, &raw mut err) };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -454,8 +467,9 @@ impl AudioSequencer {
     /// Converts a host time into a beat position.
     pub fn beats_for_host_time(&self, host_time: u64) -> Result<f64, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let beats =
-            unsafe { ffi::av_audio_sequencer_beats_for_host_time(self.ptr, host_time, &mut err) };
+        let beats = unsafe {
+            ffi::av_audio_sequencer_beats_for_host_time(self.ptr, host_time, &raw mut err)
+        };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -470,7 +484,7 @@ impl AudioSequencer {
     /// Starts playback.
     pub fn start(&self) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_sequencer_start(self.ptr, &mut err) };
+        let status = unsafe { ffi::av_audio_sequencer_start(self.ptr, &raw mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -495,7 +509,7 @@ impl AudioSequencer {
                 callback_fn,
                 userdata,
                 drop_fn,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -516,7 +530,7 @@ impl AudioSequencer {
                 None,
                 ptr::null_mut(),
                 None,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

@@ -120,7 +120,7 @@ impl Drop for AudioEngine {
 impl AudioEngine {
     pub fn new() -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_engine_create(&mut err) };
+        let ptr = unsafe { ffi::av_audio_engine_create(&raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::ENGINE_ERROR, err) });
         }
@@ -133,7 +133,7 @@ impl AudioEngine {
 
     pub fn info(&self) -> Result<AudioEngineInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_engine_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_engine_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::ENGINE_ERROR, err) });
         }
@@ -150,7 +150,7 @@ impl AudioEngine {
 
     pub fn start(&self) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_engine_start(self.ptr, &mut err) };
+        let status = unsafe { ffi::av_audio_engine_start(self.ptr, &raw mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -179,7 +179,7 @@ impl AudioEngine {
                 mode.as_raw(),
                 format.ptr,
                 maximum_frame_count,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -197,7 +197,7 @@ impl AudioEngine {
     pub fn manual_rendering_info(&self) -> Result<AudioEngineManualRenderingInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
-            unsafe { ffi::av_audio_engine_manual_rendering_info_json(self.ptr, &mut err) };
+            unsafe { ffi::av_audio_engine_manual_rendering_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::ENGINE_ERROR, err) });
         }
@@ -247,7 +247,12 @@ impl AudioEngine {
     ) -> Result<AudioEngineManualRenderingStatus, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let raw_status = unsafe {
-            ffi::av_audio_engine_render_offline(self.ptr, number_of_frames, buffer.ptr, &mut err)
+            ffi::av_audio_engine_render_offline(
+                self.ptr,
+                number_of_frames,
+                buffer.ptr,
+                &raw mut err,
+            )
         };
         if raw_status == i64::MIN {
             return Err(unsafe { from_swift(ffi::status::ENGINE_ERROR, err) });
@@ -267,7 +272,7 @@ impl AudioEngine {
                 self.ptr,
                 number_of_frames,
                 buffer.ptr,
-                &mut err,
+                &raw mut err,
             )
         };
         if raw_status == i64::MIN {
@@ -280,7 +285,7 @@ impl AudioEngine {
     pub fn configuration_change_notification_name() -> Result<String, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let string_ptr =
-            unsafe { ffi::av_audio_engine_configuration_change_notification_name(&mut err) };
+            unsafe { ffi::av_audio_engine_configuration_change_notification_name(&raw mut err) };
         if string_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::ENGINE_ERROR, err) });
         }

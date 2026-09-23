@@ -63,7 +63,7 @@ impl AudioCompressedBuffer {
                 format.ptr,
                 packet_capacity,
                 maximum_packet_size,
-                &mut err,
+                &raw mut err,
             )
         };
         if ptr.is_null() {
@@ -75,7 +75,7 @@ impl AudioCompressedBuffer {
     /// Returns compressed-buffer metadata.
     pub fn info(&self) -> Result<AudioCompressedBufferInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_compressed_buffer_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_compressed_buffer_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -96,7 +96,7 @@ impl AudioCompressedBuffer {
     pub fn set_packet_count(&self, packet_count: AudioPacketCount) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_audio_compressed_buffer_set_packet_count(self.ptr, packet_count, &mut err)
+            ffi::av_audio_compressed_buffer_set_packet_count(self.ptr, packet_count, &raw mut err)
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
@@ -123,7 +123,7 @@ impl AudioCompressedBuffer {
     pub fn set_byte_length(&self, byte_length: u32) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_audio_compressed_buffer_set_byte_length(self.ptr, byte_length, &mut err)
+            ffi::av_audio_compressed_buffer_set_byte_length(self.ptr, byte_length, &raw mut err)
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });

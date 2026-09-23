@@ -40,7 +40,8 @@ pub trait AudioBufferHandle {
     /// Returns structural information about the underlying `AudioBufferList`.
     fn buffer_info(&self) -> Result<AudioBufferInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_buffer_info_json(self.as_buffer_ptr(), &mut err) };
+        let json_ptr =
+            unsafe { ffi::av_audio_buffer_info_json(self.as_buffer_ptr(), &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

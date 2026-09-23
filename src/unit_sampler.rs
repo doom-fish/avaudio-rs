@@ -79,7 +79,7 @@ impl AudioUnitSampler {
         let path = path_to_cstring(path)?;
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_audio_unit_sampler_load_instrument(self.ptr, path.as_ptr(), &mut err)
+            ffi::av_audio_unit_sampler_load_instrument(self.ptr, path.as_ptr(), &raw mut err)
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
@@ -100,7 +100,7 @@ impl AudioUnitSampler {
                 self.ptr,
                 raw_paths.as_ptr(),
                 raw_paths.len(),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -126,7 +126,7 @@ impl AudioUnitSampler {
                 i32::from(program),
                 i32::from(bank_msb_value),
                 i32::from(bank_lsb_value),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

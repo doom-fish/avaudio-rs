@@ -56,7 +56,7 @@ impl AudioApplication {
     /// Returns whether the app's audio input is currently muted.
     pub fn input_muted(&self) -> Result<bool, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let value = unsafe { ffi::av_audio_application_get_input_muted(&mut err) };
+        let value = unsafe { ffi::av_audio_application_get_input_muted(&raw mut err) };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -69,7 +69,7 @@ impl AudioApplication {
     /// this call succeeds.
     pub fn set_input_muted(&self, muted: bool) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let status = unsafe { ffi::av_audio_application_set_input_muted(muted, &mut err) };
+        let status = unsafe { ffi::av_audio_application_set_input_muted(muted, &raw mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -79,7 +79,7 @@ impl AudioApplication {
     /// Returns the current record-permission state.
     pub fn record_permission(&self) -> Result<AudioApplicationRecordPermission, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let raw = unsafe { ffi::av_audio_application_get_record_permission(&mut err) };
+        let raw = unsafe { ffi::av_audio_application_get_record_permission(&raw mut err) };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -100,7 +100,7 @@ impl AudioApplication {
                 callback_fn,
                 userdata,
                 drop_fn,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

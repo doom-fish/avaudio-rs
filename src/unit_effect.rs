@@ -45,7 +45,8 @@ pub trait AudioUnitHandle: AudioNodeHandle {
     /// Returns common state for bypass-capable audio units.
     fn unit_info(&self) -> Result<AudioUnitInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_unit_info_json(self.as_audio_unit_ptr(), &mut err) };
+        let json_ptr =
+            unsafe { ffi::av_audio_unit_info_json(self.as_audio_unit_ptr(), &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -55,7 +56,8 @@ pub trait AudioUnitHandle: AudioNodeHandle {
     /// Returns whether the underlying audio unit is bypassed.
     fn bypass(&self) -> Result<bool, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_unit_info_json(self.as_audio_unit_ptr(), &mut err) };
+        let json_ptr =
+            unsafe { ffi::av_audio_unit_info_json(self.as_audio_unit_ptr(), &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -71,7 +73,7 @@ pub trait AudioUnitHandle: AudioNodeHandle {
     fn metadata(&self) -> Result<AudioUnitMetadata, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
-            unsafe { ffi::av_audio_unit_metadata_json(self.as_audio_unit_ptr(), &mut err) };
+            unsafe { ffi::av_audio_unit_metadata_json(self.as_audio_unit_ptr(), &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -119,7 +121,11 @@ pub trait AudioUnitHandle: AudioNodeHandle {
         let path = path_to_cstring(path)?;
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_audio_unit_load_preset_at_url(self.as_audio_unit_ptr(), path.as_ptr(), &mut err)
+            ffi::av_audio_unit_load_preset_at_url(
+                self.as_audio_unit_ptr(),
+                path.as_ptr(),
+                &raw mut err,
+            )
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
@@ -169,7 +175,7 @@ impl AudioUnitEffect {
                 description.component_manufacturer,
                 description.component_flags,
                 description.component_flags_mask,
-                &mut err,
+                &raw mut err,
             )
         };
         if ptr.is_null() {

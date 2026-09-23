@@ -59,8 +59,9 @@ impl AudioMixingDestination {
     /// Returns the underlying mixer connection point.
     pub fn connection_point(&self) -> Result<AudioConnectionPoint, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr =
-            unsafe { ffi::av_audio_mixing_destination_copy_connection_point(self.ptr, &mut err) };
+        let ptr = unsafe {
+            ffi::av_audio_mixing_destination_copy_connection_point(self.ptr, &raw mut err)
+        };
         if ptr.is_null() {
             if err.is_null() {
                 return Err(AVAudioError::OperationFailed(
@@ -78,7 +79,8 @@ pub trait AudioStereoMixing: AudioMixingHandle {
     /// Returns the stereo pan setting.
     fn pan(&self) -> Result<f32, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let value = unsafe { ffi::av_audio_stereo_mixing_get_pan(self.as_mixing_ptr(), &mut err) };
+        let value =
+            unsafe { ffi::av_audio_stereo_mixing_get_pan(self.as_mixing_ptr(), &raw mut err) };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -89,7 +91,7 @@ pub trait AudioStereoMixing: AudioMixingHandle {
     fn set_pan(&self, pan: f32) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status =
-            unsafe { ffi::av_audio_stereo_mixing_set_pan(self.as_mixing_ptr(), pan, &mut err) };
+            unsafe { ffi::av_audio_stereo_mixing_set_pan(self.as_mixing_ptr(), pan, &raw mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -224,8 +226,9 @@ pub trait Audio3DMixing: AudioMixingHandle {
     /// Returns the 3D position.
     fn position(&self) -> Result<Audio3DVector, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr =
-            unsafe { ffi::av_audio_3d_mixing_get_position_json(self.as_mixing_ptr(), &mut err) };
+        let json_ptr = unsafe {
+            ffi::av_audio_3d_mixing_get_position_json(self.as_mixing_ptr(), &raw mut err)
+        };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -242,7 +245,7 @@ pub trait Audio3DMixing: AudioMixingHandle {
                 position.x,
                 position.y,
                 position.z,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -259,7 +262,7 @@ pub trait AudioMixing: AudioStereoMixing + Audio3DMixing {
     /// Returns the input volume.
     fn volume(&self) -> Result<f32, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let value = unsafe { ffi::av_audio_mixing_get_volume(self.as_mixing_ptr(), &mut err) };
+        let value = unsafe { ffi::av_audio_mixing_get_volume(self.as_mixing_ptr(), &raw mut err) };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -270,7 +273,7 @@ pub trait AudioMixing: AudioStereoMixing + Audio3DMixing {
     fn set_volume(&self, volume: f32) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status =
-            unsafe { ffi::av_audio_mixing_set_volume(self.as_mixing_ptr(), volume, &mut err) };
+            unsafe { ffi::av_audio_mixing_set_volume(self.as_mixing_ptr(), volume, &raw mut err) };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -289,7 +292,7 @@ pub trait AudioMixing: AudioStereoMixing + Audio3DMixing {
                 self.as_mixing_ptr(),
                 mixer.as_node_ptr(),
                 bus,
-                &mut err,
+                &raw mut err,
             )
         };
         if ptr.is_null() {
@@ -309,7 +312,7 @@ fn read_float(
     getter: unsafe extern "C" fn(*mut c_void, *mut *mut c_char) -> f32,
 ) -> Result<f32, AVAudioError> {
     let mut err: *mut c_char = ptr::null_mut();
-    let value = unsafe { getter(mixing_ptr, &mut err) };
+    let value = unsafe { getter(mixing_ptr, &raw mut err) };
     if !err.is_null() {
         return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
     }
@@ -322,7 +325,7 @@ fn write_float(
     setter: unsafe extern "C" fn(*mut c_void, f32, *mut *mut c_char) -> i32,
 ) -> Result<(), AVAudioError> {
     let mut err: *mut c_char = ptr::null_mut();
-    let status = unsafe { setter(mixing_ptr, value, &mut err) };
+    let status = unsafe { setter(mixing_ptr, value, &raw mut err) };
     if status != ffi::status::OK {
         return Err(unsafe { from_swift(status, err) });
     }
@@ -334,7 +337,7 @@ fn read_3d_enum(
     getter: unsafe extern "C" fn(*mut c_void, *mut *mut c_char) -> i64,
 ) -> Result<i64, AVAudioError> {
     let mut err: *mut c_char = ptr::null_mut();
-    let value = unsafe { getter(mixing_ptr, &mut err) };
+    let value = unsafe { getter(mixing_ptr, &raw mut err) };
     if !err.is_null() {
         return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
     }
@@ -347,7 +350,7 @@ fn write_3d_enum(
     setter: unsafe extern "C" fn(*mut c_void, i64, *mut *mut c_char) -> i32,
 ) -> Result<(), AVAudioError> {
     let mut err: *mut c_char = ptr::null_mut();
-    let status = unsafe { setter(mixing_ptr, value, &mut err) };
+    let status = unsafe { setter(mixing_ptr, value, &raw mut err) };
     if status != ffi::status::OK {
         return Err(unsafe { from_swift(status, err) });
     }

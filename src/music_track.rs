@@ -105,7 +105,7 @@ impl MusicTrack {
     /// Returns a snapshot of track state.
     pub fn info(&self) -> Result<MusicTrackInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_music_track_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_music_track_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -238,7 +238,7 @@ impl MusicTrack {
             ffi::av_music_track_set_uses_automated_parameters(
                 self.ptr,
                 uses_automated_parameters,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -251,8 +251,9 @@ impl MusicTrack {
     pub fn add_event(&self, event: &MusicEvent, beat: f64) -> Result<(), AVAudioError> {
         let json = event_to_json_cstring(event)?;
         let mut err: *mut c_char = ptr::null_mut();
-        let status =
-            unsafe { ffi::av_music_track_add_event_json(self.ptr, json.as_ptr(), beat, &mut err) };
+        let status = unsafe {
+            ffi::av_music_track_add_event_json(self.ptr, json.as_ptr(), beat, &raw mut err)
+        };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
         }
@@ -272,7 +273,7 @@ impl MusicTrack {
                 range.start,
                 range.length,
                 beat_amount,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -285,7 +286,12 @@ impl MusicTrack {
     pub fn clear_events_in_range(&self, range: BeatRange) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_music_track_clear_events_in_range(self.ptr, range.start, range.length, &mut err)
+            ffi::av_music_track_clear_events_in_range(
+                self.ptr,
+                range.start,
+                range.length,
+                &raw mut err,
+            )
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
@@ -297,7 +303,12 @@ impl MusicTrack {
     pub fn cut_events_in_range(&self, range: BeatRange) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::av_music_track_cut_events_in_range(self.ptr, range.start, range.length, &mut err)
+            ffi::av_music_track_cut_events_in_range(
+                self.ptr,
+                range.start,
+                range.length,
+                &raw mut err,
+            )
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
@@ -320,7 +331,7 @@ impl MusicTrack {
                 range.length,
                 source_track.ptr,
                 insert_at,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -344,7 +355,7 @@ impl MusicTrack {
                 range.length,
                 source_track.ptr,
                 merge_at,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
@@ -374,7 +385,7 @@ impl MusicTrack {
                 range.length,
                 Some(enumeration_trampoline),
                 state_ptr.cast::<c_void>(),
-                &mut err,
+                &raw mut err,
             )
         };
         unsafe {

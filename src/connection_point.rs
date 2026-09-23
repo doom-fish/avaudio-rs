@@ -45,7 +45,7 @@ impl AudioConnectionPoint {
     pub fn new(node: &dyn AudioNodeHandle, bus: AudioNodeBus) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let ptr =
-            unsafe { ffi::av_audio_connection_point_create(node.as_node_ptr(), bus, &mut err) };
+            unsafe { ffi::av_audio_connection_point_create(node.as_node_ptr(), bus, &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -55,7 +55,7 @@ impl AudioConnectionPoint {
     /// Returns connection-point metadata.
     pub fn info(&self) -> Result<AudioConnectionPointInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_connection_point_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_connection_point_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }

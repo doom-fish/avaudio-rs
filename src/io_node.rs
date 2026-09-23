@@ -108,7 +108,7 @@ pub trait AudioIONode: AudioIONodeHandle {
     fn presentation_latency(&self) -> Result<f64, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let latency = unsafe {
-            ffi::av_audio_io_node_get_presentation_latency(self.as_io_node_ptr(), &mut err)
+            ffi::av_audio_io_node_get_presentation_latency(self.as_io_node_ptr(), &raw mut err)
         };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -120,7 +120,7 @@ pub trait AudioIONode: AudioIONodeHandle {
     fn is_voice_processing_enabled(&self) -> Result<bool, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let enabled = unsafe {
-            ffi::av_audio_io_node_is_voice_processing_enabled(self.as_io_node_ptr(), &mut err)
+            ffi::av_audio_io_node_is_voice_processing_enabled(self.as_io_node_ptr(), &raw mut err)
         };
         if !err.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -135,7 +135,7 @@ pub trait AudioIONode: AudioIONodeHandle {
             ffi::av_audio_io_node_set_voice_processing_enabled(
                 self.as_io_node_ptr(),
                 enabled,
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

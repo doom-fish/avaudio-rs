@@ -96,7 +96,7 @@ impl AudioInputNode {
         let bus = bus_to_i32(bus)?;
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
-            unsafe { ffi::av_audio_input_node_output_format_json(self.ptr, bus, &mut err) };
+            unsafe { ffi::av_audio_input_node_output_format_json(self.ptr, bus, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -108,7 +108,7 @@ impl AudioInputNode {
         let bus = bus_to_i32(bus)?;
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
-            unsafe { ffi::av_audio_input_node_input_format_json(self.ptr, bus, &mut err) };
+            unsafe { ffi::av_audio_input_node_input_format_json(self.ptr, bus, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -256,7 +256,10 @@ impl AudioInputNode {
     ) -> Result<AudioVoiceProcessingOtherAudioDuckingConfiguration, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe {
-            ffi::av_audio_input_node_get_other_audio_ducking_configuration_json(self.ptr, &mut err)
+            ffi::av_audio_input_node_get_other_audio_ducking_configuration_json(
+                self.ptr,
+                &raw mut err,
+            )
         };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -275,7 +278,7 @@ impl AudioInputNode {
                 self.ptr,
                 configuration.enable_advanced_ducking,
                 configuration.ducking_level.as_raw(),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

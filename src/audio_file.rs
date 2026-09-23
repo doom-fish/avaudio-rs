@@ -50,7 +50,7 @@ impl AudioFile {
             AVAudioError::InvalidArgument(format!("path contains NUL byte: {error}"))
         })?;
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_file_open_for_reading(path.as_ptr(), &mut err) };
+        let ptr = unsafe { ffi::av_audio_file_open_for_reading(path.as_ptr(), &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::FILE_ERROR, err) });
         }
@@ -59,7 +59,7 @@ impl AudioFile {
 
     pub fn info(&self) -> Result<AudioFileInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_file_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_file_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::FILE_ERROR, err) });
         }
@@ -92,7 +92,8 @@ impl AudioFile {
 
     pub fn read_pcm_buffer(&self, frame_count: u32) -> Result<PCMBuffer, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let ptr = unsafe { ffi::av_audio_file_read_pcm_buffer(self.ptr, frame_count, &mut err) };
+        let ptr =
+            unsafe { ffi::av_audio_file_read_pcm_buffer(self.ptr, frame_count, &raw mut err) };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::FILE_ERROR, err) });
         }

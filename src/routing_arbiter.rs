@@ -88,7 +88,7 @@ impl AudioRoutingArbiter {
                 Some(routing_begin_result_trampoline),
                 userdata,
                 Some(routing_begin_drop),
-                &mut err,
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {

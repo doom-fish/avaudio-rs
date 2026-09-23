@@ -63,7 +63,12 @@ impl AudioFormat {
     ) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let ptr = unsafe {
-            ffi::av_audio_format_create_standard(sample_rate, channel_count, interleaved, &mut err)
+            ffi::av_audio_format_create_standard(
+                sample_rate,
+                channel_count,
+                interleaved,
+                &raw mut err,
+            )
         };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::FORMAT_ERROR, err) });
@@ -73,7 +78,7 @@ impl AudioFormat {
 
     pub fn info(&self) -> Result<AudioFormatInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_format_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_format_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::FORMAT_ERROR, err) });
         }

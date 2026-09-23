@@ -136,7 +136,7 @@ impl AudioConverter {
     ) -> Result<Self, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let ptr = unsafe {
-            ffi::av_audio_converter_create(input_format.ptr, output_format.ptr, &mut err)
+            ffi::av_audio_converter_create(input_format.ptr, output_format.ptr, &raw mut err)
         };
         if ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
@@ -147,7 +147,7 @@ impl AudioConverter {
     /// Returns converter metadata.
     pub fn info(&self) -> Result<AudioConverterInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_converter_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_converter_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -174,7 +174,7 @@ impl AudioConverter {
     /// Returns priming-frame requirements.
     pub fn prime_info(&self) -> Result<AudioConverterPrimeInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
-        let json_ptr = unsafe { ffi::av_audio_converter_prime_info_json(self.ptr, &mut err) };
+        let json_ptr = unsafe { ffi::av_audio_converter_prime_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {
             return Err(unsafe { from_swift(ffi::status::OPERATION_FAILED, err) });
         }
@@ -204,7 +204,7 @@ impl AudioConverter {
                 self.ptr,
                 input_buffer.ptr,
                 output_buffer.ptr,
-                &mut err,
+                &raw mut err,
             )
         };
         if raw_status < 0 {
