@@ -1,6 +1,6 @@
 # avaudio-rs
 
-Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
+Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS 12 or later.
 
 ## Features
 
@@ -8,6 +8,7 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
 
 - `AVAudioEngine` graph creation, preparation, start/stop/reset, and generic node attach/connect helpers.
 - `AVAudioPlayerNode`, `AVAudioMixerNode`, `AVAudioInputNode`, `AVAudioOutputNode`, `AVAudioEnvironmentNode`, `AVAudioSourceNode`, and `AVAudioSinkNode` wrappers.
+- `AVAudioPCMBuffer` sample access: `PCMBuffer::channel_data::<T>()` and `channel_data_mut::<T>()` for `f32`, `i16`, and `i32` samples (deinterleaved or interleaved), plus owned copies through `copy_samples()`. Buffers scheduled on a player node reject writes until the player releases them.
 - `AVAudioFile`, `AVAudioPCMBuffer`, `AVAudioCompressedBuffer`, `AVAudioBuffer`, `AVAudioFormat`, `AVAudioChannelLayout`, `AVAudioConnectionPoint`, `AVAudioTime`, `AVAudioConverter`, and `AVAudioSequencer` support, including converter prime/status helpers and sequencer data/file round-tripping plus `AVMusicTrack` event editing helpers.
 - Generic `AVAudioUnit`, `AVAudioUnitEffect`, `AVAudioUnitTimeEffect`, `AVAudioUnitGenerator`, `AVAudioUnitMIDIInstrument`, `AVAudioUnitTimePitch`, `AVAudioUnitReverb`, `AVAudioUnitEQ`, `AVAudioUnitDelay`, `AVAudioUnitDistortion`, `AVAudioUnitSampler`, `AVAudioUnitVarispeed`, and shared audio-unit bypass/metadata helpers.
 - Public Rust mirrors plus protocol traits for core `AVAudioTypes.h`, `AVAudioMixing.h`, `AVAudioSettings.h`, `AVAudioSessionTypes.h`, and the macOS-visible `AVAudioIONode` / `AVAudioSessionRoute` helper types, including `AudioMixingDestination`, routing arbitration, session capability, manual-rendering input blocks, and voice-processing ducking/speech-activity helpers.
@@ -15,7 +16,8 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS.
 - `AVAudioApplication` permission/input-mute queries and `AVAudioUnitComponentManager` discovery snapshots/constants.
 - `AVAudioSession`-style session queries with a macOS-friendly compatibility stub.
 - Optional Rust callbacks for `AVAudioPlayerNode`, `AVAudioSourceNode`, `AVAudioSinkNode`, `AVAudioSequencer`, `AVAudioPlayerDelegate`, and `AVAudioRecorderDelegate` blocks/callbacks.
-- Optional `async` feature exposing executor-agnostic future/stream wrappers for record permission, muted-speech activity, engine configuration changes, player-node completions, recorder/player delegates, and `AVAudioNode.installTap` events.
+- Optional `async` feature exposing executor-agnostic future/stream wrappers for record permission, muted-speech activity, engine configuration changes, player-node completions, recorder/player delegates, and `AVAudioNode.installTap` buffers with copied samples.
+- Graph and playback calls that `AVFoundation` guards with Objective-C exceptions (attaching a node owned by another engine, connecting detached nodes, starting an empty engine, playing a detached player, scheduling a buffer with the wrong channel count, installing a second tap on a bus) return `AVAudioError` instead of aborting the process.
 
 See [COVERAGE.md](COVERAGE.md) for the API coverage table.
 
@@ -23,7 +25,7 @@ See [COVERAGE.md](COVERAGE.md) for the API coverage table.
 
 Enable the `async` feature to use `avaudio::async_api` and executor-agnostic wrappers around `AVFAudio`'s callback surfaces. `AsyncAudioApplication::request_record_permission` exposes the one-shot microphone permission callback as a `Future`; `MutedSpeechActivityStream`, `ConfigChangeStream`, `PlayerNodeCompletionStream`, `RecorderEventStream`, `SimplePlayerEventStream`, and `TapBufferStream` expose event/listener surfaces as bounded async streams.
 
-`TapBufferStream` is special-cased to use `doom-fish-utils::spsc::SpscRing` on the `CoreAudio` render thread; every other stream uses `doom-fish-utils::stream::BoundedAsyncStream`. As with the underlying Apple API, only one muted-speech activity listener should be active per input node at a time.
+`TapBufferStream` is special-cased to use a lossy `doom-fish-utils::spsc::SpscRing`; each event carries a copy of the tap buffer's samples. `AVFoundation` calls tap blocks on an internal, non-real-time thread. `TapBufferStream::subscribe_to_node` fails if the bus already has a tap instead of replacing it. Every other stream uses `doom-fish-utils::stream::BoundedAsyncStream`. As with the underlying Apple API, only one muted-speech activity listener should be active per input node at a time.
 
 ```bash
 cargo run --features async --example 26_async_config_change
@@ -44,15 +46,15 @@ fn main() -> Result<(), AVAudioError> {
     let player = AudioPlayerNode::new()?;
     let environment = AudioEnvironmentNode::new()?;
 
-    engine.attach_node(&player);
-    engine.attach_node(&environment);
-    engine.connect_nodes(&player, &environment, Some(&format));
-    engine.connect_node_to_main_mixer(&environment, Some(&format));
-    engine.prepare();
+    engine.attach_node(&player)?;
+    engine.attach_node(&environment)?;
+    engine.connect_nodes(&player, &environment, Some(&format))?;
+    engine.connect_node_to_main_mixer(&environment, Some(&format))?;
+    engine.prepare()?;
     engine.start()?;
 
     player.schedule_buffer(&buffer)?;
-    player.play();
+    player.play()?;
     Ok(())
 }
 ```

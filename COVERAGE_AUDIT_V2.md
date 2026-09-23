@@ -8,6 +8,8 @@ COVERAGE_PCT: 100.00
 
 Audit scope: top-level `AVAudio*` declarations in `AVFAudio.framework` headers (classes, protocols, enums/options, typedefs, constants, and helper functions), not per-method coverage. The v1 audit identified 125 public symbols; v2 spot-checks confirm all symbols remain present in MacOSX26.2.sdk, the crate's safe wrappers are intact (19 source files covering core types), and the EXEMPT entry (AVAudioApplicationMicrophoneInjectionPermission) is correctly flagged with API_UNAVAILABLE(macos). Filtered out 80+ symbols explicitly unavailable on macOS.
 
+> **What these numbers measure.** The counts cover top-level `AVAudio*` declarations (types, enums, typedefs, constants and blocks) only, as listed from MacOSX26.2.sdk; they are not method coverage. A symbol counts as verified when some wrapper exists, even when most of its methods are unwrapped: for example `AVAudioEngine` has no `detach`, bus-specific `connect`, `connect(_:toConnectionPoints:)` or `disconnectNode*` wrappers, and `AVAudioPlayerNode` has no `scheduleSegment` or `playerTime` wrappers. The `AudioSession` queries are macOS stubs that return fixed values. macOS 27 additions (for example `connect:…error:` and `installTapOnBus:…error:block:`) are not audited. Before 0.6.0, `AVAudioNodeTapBlock` was reachable only through a no-op scaffold and `AVAudioPCMBuffer` had no sample access; `TapBufferStream` now delivers copied samples and `PCMBuffer::channel_data` exposes them.
+
 ## 🟢 VERIFIED
 | Symbol | Kind | Header | Wrapped by |
 | --- | --- | --- | --- |
@@ -121,7 +123,7 @@ Audit scope: top-level `AVAudio*` declarations in `AVFAudio.framework` headers (
 | `AVAudioIONodeInputBlock` | block | `AVAudioIONode.h` | `AudioInputNode::{set_manual_rendering_input_pcm_format_scaffold, set_manual_rendering_input_pcm_format_with_callback}` |
 | `AVAudioMixing` | protocol | `AVAudioMixing.h` | `AudioMixing` trait + `AudioPlayerNode` / `AudioInputNode` / `AudioMixingDestination` impls |
 | `AVAudioMixingDestination` | class | `AVAudioMixing.h` | `AudioMixingDestination` |
-| `AVAudioNodeTapBlock` | block | `AVAudioNode.h` | `AudioInputNode::{install_tap_scaffold, remove_tap}` |
+| `AVAudioNodeTapBlock` | block | `AVAudioNode.h` | `async_api::TapBufferStream` (copied samples), `AudioInputNode::{install_tap_scaffold, remove_tap}` (no-op block) |
 | `AVAudioPlayerDelegate` | protocol | `AVAudioPlayer.h` | `AudioSimplePlayerDelegate + AudioSimplePlayer::{set_delegate, clear_delegate}` |
 | `AVAudioPlayerNodeBufferOptions` | enum | `AVAudioPlayerNode.h` | `AudioPlayerNodeBufferOptions + AudioPlayerNode::schedule_buffer_with_options()` |
 | `AVAudioPlayerNodeCompletionCallbackType` | enum | `AVAudioPlayerNode.h` | `AudioPlayerNodeCompletionCallbackType + typed-completion scheduling APIs` |

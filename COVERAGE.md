@@ -1,5 +1,7 @@
 # API Coverage
 
+This table maps Apple symbol groups to their wrappers; it is not a per-method inventory. Known method-level gaps include `AVAudioEngine.detach(_:)`, the bus-specific `connect(_:to:fromBus:toBus:format:)`, `connect(_:toConnectionPoints:fromBus:format:)`, `disconnectNodeInput(_:)` / `disconnectNodeOutput(_:)`, `AVAudioPlayerNode.scheduleSegment(...)`, `lastRenderTime` / `playerTime(forNodeTime:)`, and the macOS 27 `…error:` variants of `connect` and `installTap`. Rows marked "stub" return fixed values on macOS.
+
 ## AVAudioEngine
 | Symbol | Status | Notes |
 |--------|--------|-------|
@@ -8,9 +10,9 @@
 | `engine.start()` | ✅ | `AudioEngine::start()` |
 | `engine.stop()` | ✅ | `AudioEngine::stop()` |
 | `engine.reset()` | ✅ | `AudioEngine::reset()` |
-| `engine.attach(_:)` | ✅ | `AudioEngine::attach_node()` |
-| `engine.connect(_:to:format:)` | ✅ | `AudioEngine::connect_nodes()` |
-| `engine.connect(_:to:engine.mainMixerNode, format:)` | ✅ | `AudioEngine::connect_node_to_main_mixer()` |
+| `engine.attach(_:)` | ✅ | `AudioEngine::attach_node()`; returns an error for nodes owned by another engine |
+| `engine.connect(_:to:format:)` | ✅ | `AudioEngine::connect_nodes()`; AVFoundation exceptions are returned as errors |
+| `engine.connect(_:to:engine.mainMixerNode, format:)` | ✅ | `AudioEngine::connect_node_to_main_mixer()`; AVFoundation exceptions are returned as errors |
 | `engine.mainMixerNode` | ✅ | `AudioEngine::main_mixer_node()` |
 | `engine.inputNode` | ✅ | `AudioEngine::input_node()` |
 | `engine.outputNode` | ✅ | `AudioEngine::output_node()` |
@@ -22,7 +24,7 @@
 | Symbol | Status | Notes |
 |--------|--------|-------|
 | `AVAudioPlayerNode.init()` | ✅ | `AudioPlayerNode::new()` |
-| `play()` / `pause()` / `stop()` | ✅ | Direct wrappers |
+| `play()` / `pause()` / `stop()` | ✅ | Direct wrappers; `play()` returns an error for a detached player |
 | `scheduleBuffer(_:)` | ✅ | `AudioPlayerNode::schedule_buffer()` |
 | `scheduleFile(_:)` | ✅ | `AudioPlayerNode::schedule_file()` |
 | Completion handler scheduling | ✅ | Rust closure trampoline |
@@ -44,9 +46,9 @@
 | `engine.inputNode` | ✅ | `AudioEngine::input_node()` |
 | `outputFormat(forBus:)` | ✅ | `AudioInputNode::output_format()` |
 | `inputFormat(forBus:)` | ✅ | `AudioInputNode::input_format()` |
-| `installTap(onBus:bufferSize:format:block:)` | ✅ | Scaffold helper installs a no-op tap block |
+| `installTap(onBus:bufferSize:format:block:)` | ✅ | `TapBufferStream` (`async` feature) delivers copied samples; `install_tap_scaffold()` installs a no-op block. Both fail instead of replacing an existing tap |
 | `removeTap(onBus:)` | ✅ | `AudioInputNode::remove_tap()` |
-| Manual-rendering input block | ✅ | `set_manual_rendering_input_pcm_format_scaffold()` / `set_manual_rendering_input_pcm_format_with_callback()` |
+| Manual-rendering input block | ✅ | `set_manual_rendering_input_pcm_format_scaffold()` / `set_manual_rendering_input_pcm_format_with_callback()`; the returned `AudioManualRenderingInput` owns its buffer |
 | `presentationLatency` / `voiceProcessingEnabled` | ✅ | Via the shared `AudioIONode` trait |
 | Input voice-processing bypass / AGC / mute | ✅ | Direct getters/setters |
 | Speech-activity listener / ducking configuration | ✅ | Rust callback + `AudioVoiceProcessingOtherAudioDuckingConfiguration` |
@@ -141,9 +143,9 @@
 ## AVAudioSession
 | Symbol | Status | Notes |
 |--------|--------|-------|
-| `AVAudioSession.sharedInstance().sampleRate` | ✅ | macOS compatibility stub returns `48_000.0` |
-| `AVAudioSession.sharedInstance().outputVolume` | ✅ | macOS compatibility stub returns `1.0` |
-| `AVAudioSession.sharedInstance().isOtherAudioPlaying` | ✅ | macOS stub returns `false` |
+| `AVAudioSession.sharedInstance().sampleRate` | stub | macOS compatibility stub returns `48_000.0` |
+| `AVAudioSession.sharedInstance().outputVolume` | stub | macOS compatibility stub returns `1.0` |
+| `AVAudioSession.sharedInstance().isOtherAudioPlaying` | stub | macOS stub returns `false` |
 | Category / mode / activation APIs | ⏭️ | iOS-only API surface |
 
 ## AVAudioMixing / routing / helper types
@@ -267,11 +269,12 @@
 | `AVAudioPCMBuffer(pcmFormat:frameCapacity:)` | ✅ | `PCMBuffer::new()` |
 | `frameLength` | ✅ | Getter + `set_frame_length()` |
 | `format` | ✅ | `PCMBuffer::format()` |
+| `floatChannelData` / `int16ChannelData` / `int32ChannelData` / `stride` | ✅ | `PCMBuffer::channel_data::<T>()` / `channel_data_mut::<T>()` (deinterleaved and interleaved), `copy_samples()` |
 
 ## AVAudioFormat
 | Symbol | Status | Notes |
 |--------|--------|-------|
-| `AVAudioFormat(commonFormat:sampleRate:channels:interleaved:)` | ✅ | `AudioFormat::standard()` |
+| `AVAudioFormat(commonFormat:sampleRate:channels:interleaved:)` | ✅ | `AudioFormat::with_common_format()`; `AudioFormat::standard()` creates `Float32` formats |
 | `commonFormat` / `sampleRate` / `channelCount` / `interleaved` | ✅ | Individual Rust accessors |
 
 ## Shared AVAudioTypes / AVAudioSettings / AVAudioSessionTypes mirrors
