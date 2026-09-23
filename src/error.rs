@@ -22,6 +22,7 @@ pub enum AVAudioError {
     CallbackError(String),
     /// A generic operation failed.
     OperationFailed(String),
+    Unsupported(String),
 }
 
 impl fmt::Display for AVAudioError {
@@ -34,6 +35,7 @@ impl fmt::Display for AVAudioError {
             Self::PlayerError(message) => write!(f, "audio player error: {message}"),
             Self::CallbackError(message) => write!(f, "audio callback error: {message}"),
             Self::OperationFailed(message) => write!(f, "operation failed: {message}"),
+            Self::Unsupported(message) => write!(f, "unsupported: {message}"),
         }
     }
 }
@@ -81,6 +83,14 @@ mod tests {
         assert_eq!(
             AVAudioError::CallbackError("callback dropped".into()).to_string(),
             "audio callback error: callback dropped",
+        );
+    }
+
+    #[test]
+    fn display_formats_unsupported_errors() {
+        assert_eq!(
+            AVAudioError::Unsupported("AVAudioSession is unavailable on macOS".into()).to_string(),
+            "unsupported: AVAudioSession is unavailable on macOS",
         );
     }
 

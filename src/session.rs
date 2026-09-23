@@ -1,25 +1,33 @@
 //! [`AudioSession`] — lightweight session queries.
 
-#![allow(clippy::must_use_candidate, clippy::module_name_repetitions)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::must_use_candidate,
+    clippy::module_name_repetitions
+)]
 
-use crate::ffi;
+use crate::error::AVAudioError;
 
 /// Lightweight access to `AVAudioSession`-like session data.
 pub struct AudioSession;
 
+fn unavailable() -> AVAudioError {
+    AVAudioError::Unsupported("AVAudioSession is unavailable on macOS".into())
+}
+
 impl AudioSession {
-    /// Returns the current hardware sample rate, or a best-effort macOS stub value.
-    pub fn sample_rate() -> f64 {
-        unsafe { ffi::av_audio_session_get_sample_rate() }
+    /// Returns the `AVAudioSession` sample rate; `AVAudioSession` is unavailable on macOS.
+    pub fn sample_rate() -> Result<f64, AVAudioError> {
+        Err(unavailable())
     }
 
-    /// Returns the current output volume, or a macOS stub value.
-    pub fn output_volume() -> f32 {
-        unsafe { ffi::av_audio_session_get_output_volume() }
+    /// Returns the `AVAudioSession` output volume; `AVAudioSession` is unavailable on macOS.
+    pub fn output_volume() -> Result<f32, AVAudioError> {
+        Err(unavailable())
     }
 
-    /// Returns whether other audio is currently playing.
-    pub fn is_other_audio_playing() -> bool {
-        unsafe { ffi::av_audio_session_is_other_audio_playing() }
+    /// Returns whether other audio is currently playing; `AVAudioSession` is unavailable on macOS.
+    pub fn is_other_audio_playing() -> Result<bool, AVAudioError> {
+        Err(unavailable())
     }
 }

@@ -803,9 +803,6 @@ extern "C" {
     ) -> i32;
     pub fn av_audio_routing_arbiter_leave();
 
-    pub fn av_audio_session_get_sample_rate() -> f64;
-    pub fn av_audio_session_get_output_volume() -> f32;
-    pub fn av_audio_session_is_other_audio_playing() -> bool;
     pub fn av_audio_application_get_input_muted(out_error_message: *mut *mut c_char) -> bool;
     pub fn av_audio_application_set_input_muted(
         muted: bool,
