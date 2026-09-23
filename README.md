@@ -2,6 +2,20 @@
 
 Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS 12 or later.
 
+## Installation
+
+```toml
+[dependencies]
+avaudio = "0.6"
+```
+
+Enable the `async` feature for the future and stream wrappers:
+
+```toml
+[dependencies]
+avaudio = { version = "0.6", features = ["async"] }
+```
+
 ## Features
 
 `avaudio` now covers the core pieces needed to build and inspect `AVFoundation` audio graphs from Rust:

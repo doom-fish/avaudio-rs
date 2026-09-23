@@ -1,5 +1,49 @@
 # Changelog
 
+All notable changes to `avaudio` are documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.6.0] - Unreleased
+
+### Security
+
+- `AudioManualRenderingInput::from_buffer` kept only a raw pointer to the caller's buffer, so a safe callback could hand the engine a buffer that had already been freed. The input now owns the buffer, and the input block keeps it alive until the engine calls the block again.
+- Dropping an `AudioPlayerNode` while the engine still held the node freed its pending completion state, and a later completion then ran on freed memory. The completion handler the player holds now owns that state, fires it at most once, and frees it when the player releases the handler.
+- A rejected `set_manual_rendering_input_pcm_format_with_callback` or `set_muted_speech_activity_event_listener` call freed the callback state twice, crashing from safe code. Swift now owns the state on every path.
+- The async streams freed their sender right after unsubscribing, while a notification, delegate, completion or tap callback on another thread could still use it. The senders now live in a reference-counted `doom_fish_utils::callback_context::CallbackContext` that each Swift bridge releases from its deinit.
+- Safe code could write samples of a buffer while a player node was reading it. Buffers scheduled on a player node now reject writes until the player releases them.
+
+### Fixed
+
+- Graph and playback misuse that AVFoundation reports with Objective-C exceptions no longer aborts the process: connecting nodes that are not attached to the engine, attaching a node owned by another engine, preparing or starting an engine without input or output nodes, playing a detached player, scheduling a buffer whose channel count differs from the player's output format, and installing a second tap on a bus now return `AVAudioError`.
+- `TapBufferStream` no longer removes an existing tap on the bus, and install failures are reported. `AudioInputNode::install_tap_scaffold` no longer removes an existing tap either.
+- A panicking `AudioSourceNode` render callback now zeroes the output buffers and sets the silence flag instead of leaving their previous contents.
+- Callback-state destructors run inside a panic guard, so a panicking captured value no longer aborts the process from an `extern "C"` drop callback.
+- Manual-rendering input buffers whose format differs from the registered format are no longer handed to the engine.
+- Scheduling completions no longer mutate an unsynchronized dictionary from the player's completion thread.
+- The `TapBufferStream` docs said tap blocks run on the real-time render thread; AVFoundation calls them on an internal, normal-priority thread.
+
+### Changed
+
+- **Breaking:** `AudioEngine::{prepare, attach_node, attach_player_node, connect_nodes, connect_node_to_main_mixer, connect_player_node_to_main_mixer}` and `AudioPlayerNode::play` return `Result<(), AVAudioError>`.
+- **Breaking:** `AudioManualRenderingInput::from_buffer` and its `From` impl take a `PCMBuffer` by value; the type is no longer `Copy`, `Clone`, `PartialEq` or `Eq`.
+- **Breaking:** `TapBufferStream::subscribe_to_node` returns `Result` and rejects a zero capacity or a bus index above `u32::MAX` instead of panicking. `TapBufferEvent` has a new `samples` field and is no longer `Copy`.
+- **Breaking:** `PCMBuffer::set_frame_length`, the output buffer of `AudioConverter::{convert_buffer, convert_buffer_status}`, and the target of `AudioEngine::{render_offline, manual_rendering_block_render}` return an error while the buffer is scheduled on a player node.
+- Depends on `doom-fish-utils` `>=0.4.1, <0.5`.
+- `rust-version` is now 1.82 (was 1.76).
+
+### Added
+
+- `PCMBuffer::channel_data::<T>()` and `PCMBuffer::channel_data_mut::<T>()` for `f32`, `i16` and `i32` samples in deinterleaved or interleaved layout, `PCMBuffer::copy_samples()`, `PCMBuffer::is_scheduled()`, and the `PCMSample`, `PCMChannelData`, `PCMChannelDataMut` and `PCMSamples` types.
+- `AudioFormat::with_common_format` for `Float32`, `Float64`, `Int16` and `Int32` PCM formats; `AudioFormat::standard` only creates `Float32` formats.
+- `TapBufferEvent::samples`, a copy of each tap buffer's samples.
+
+## [0.5.1] - 2026-06-06
+
+- Guarded the render and FFI callback trampolines against panics unwinding across the FFI boundary, and pinned the tap-event FFI struct layout.
+
 ## [0.5.0] - 2026-05-20
 
 ### Added
