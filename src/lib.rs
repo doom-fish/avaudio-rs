@@ -30,6 +30,7 @@ mod pcm_buffer;
 mod player;
 mod recorder;
 mod routing_arbiter;
+mod sealed;
 mod sequencer;
 mod session;
 mod session_capability;

@@ -31,6 +31,8 @@ impl Drop for AudioUnitGenerator {
     }
 }
 
+impl crate::sealed::Sealed for AudioUnitGenerator {}
+
 impl AudioNodeHandle for AudioUnitGenerator {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

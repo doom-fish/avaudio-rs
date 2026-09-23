@@ -70,6 +70,8 @@ impl Drop for AudioEnvironmentNode {
     }
 }
 
+impl crate::sealed::Sealed for AudioEnvironmentNode {}
+
 impl AudioNodeHandle for AudioEnvironmentNode {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

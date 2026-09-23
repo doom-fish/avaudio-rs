@@ -32,7 +32,7 @@ pub struct AudioBufferInfo {
 }
 
 /// Implemented by types backed by `AVAudioBuffer`.
-pub trait AudioBufferHandle {
+pub trait AudioBufferHandle: crate::sealed::Sealed {
     /// Returns a borrowed, non-owning pointer to the underlying `AVAudioBuffer`.
     #[doc(hidden)]
     fn as_buffer_ptr(&self) -> *mut c_void;
@@ -48,6 +48,8 @@ pub trait AudioBufferHandle {
         parse_json_and_free(json_ptr)
     }
 }
+
+impl crate::sealed::Sealed for PCMBuffer {}
 
 impl AudioBufferHandle for PCMBuffer {
     fn as_buffer_ptr(&self) -> *mut c_void {

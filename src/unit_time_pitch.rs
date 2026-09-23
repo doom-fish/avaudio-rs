@@ -30,6 +30,8 @@ impl Drop for AudioUnitTimePitch {
     }
 }
 
+impl crate::sealed::Sealed for AudioUnitTimePitch {}
+
 impl AudioNodeHandle for AudioUnitTimePitch {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

@@ -30,6 +30,8 @@ impl Drop for AudioUnitDelay {
     }
 }
 
+impl crate::sealed::Sealed for AudioUnitDelay {}
+
 impl AudioNodeHandle for AudioUnitDelay {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

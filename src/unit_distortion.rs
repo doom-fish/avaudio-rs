@@ -64,6 +64,8 @@ impl Drop for AudioUnitDistortion {
     }
 }
 
+impl crate::sealed::Sealed for AudioUnitDistortion {}
+
 impl AudioNodeHandle for AudioUnitDistortion {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

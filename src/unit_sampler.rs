@@ -44,6 +44,8 @@ impl Drop for AudioUnitSampler {
     }
 }
 
+impl crate::sealed::Sealed for AudioUnitSampler {}
+
 impl AudioNodeHandle for AudioUnitSampler {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

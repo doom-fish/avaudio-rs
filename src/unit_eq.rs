@@ -82,6 +82,8 @@ impl Drop for AudioUnitEQ {
     }
 }
 
+impl crate::sealed::Sealed for AudioUnitEQ {}
+
 impl AudioNodeHandle for AudioUnitEQ {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

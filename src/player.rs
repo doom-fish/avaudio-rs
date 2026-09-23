@@ -109,6 +109,8 @@ impl Drop for AudioPlayerNode {
     }
 }
 
+impl crate::sealed::Sealed for AudioPlayerNode {}
+
 impl AudioNodeHandle for AudioPlayerNode {
     fn as_node_ptr(&self) -> *mut c_void {
         unsafe { ffi::av_audio_player_node_get_node_unretained(self.ptr) }

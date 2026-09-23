@@ -38,6 +38,8 @@ impl Drop for AudioOutputNode {
     }
 }
 
+impl crate::sealed::Sealed for AudioOutputNode {}
+
 impl AudioNodeHandle for AudioOutputNode {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr

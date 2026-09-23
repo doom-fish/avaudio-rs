@@ -44,6 +44,8 @@ impl Drop for AudioCompressedBuffer {
     }
 }
 
+impl crate::sealed::Sealed for AudioCompressedBuffer {}
+
 impl AudioBufferHandle for AudioCompressedBuffer {
     fn as_buffer_ptr(&self) -> *mut c_void {
         self.ptr

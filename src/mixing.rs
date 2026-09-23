@@ -29,7 +29,7 @@ struct Audio3DVectorPayload {
 }
 
 #[doc(hidden)]
-pub trait AudioMixingHandle {
+pub trait AudioMixingHandle: crate::sealed::Sealed {
     fn as_mixing_ptr(&self) -> *mut c_void;
 }
 
@@ -48,6 +48,8 @@ impl Drop for AudioMixingDestination {
         }
     }
 }
+
+impl crate::sealed::Sealed for AudioMixingDestination {}
 
 impl AudioMixingHandle for AudioMixingDestination {
     fn as_mixing_ptr(&self) -> *mut c_void {

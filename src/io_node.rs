@@ -23,7 +23,7 @@ struct AudioVoiceProcessingOtherAudioDuckingConfigurationPayload {
 }
 
 #[doc(hidden)]
-pub trait AudioIONodeHandle {
+pub trait AudioIONodeHandle: crate::sealed::Sealed {
     fn as_io_node_ptr(&self) -> *mut c_void;
 }
 

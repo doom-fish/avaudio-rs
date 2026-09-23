@@ -61,6 +61,8 @@ impl Drop for AudioSinkNode {
     }
 }
 
+impl crate::sealed::Sealed for AudioSinkNode {}
+
 impl AudioNodeHandle for AudioSinkNode {
     fn as_node_ptr(&self) -> *mut c_void {
         self.ptr
