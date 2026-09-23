@@ -40,6 +40,24 @@ pub type MusicTrackEnumerationCallback = unsafe extern "C" fn(
 pub type StreamEventCallback =
     unsafe extern "C" fn(kind: i32, payload: *const c_void, ctx: *mut c_void);
 
+#[repr(C)]
+pub struct PCMBufferLayoutRaw {
+    pub float_channel_data: *const *mut c_void,
+    pub int16_channel_data: *const *mut c_void,
+    pub int32_channel_data: *const *mut c_void,
+    pub stride: u64,
+    pub channel_count: u32,
+    pub frame_length: u32,
+    pub frame_capacity: u32,
+    pub buffer_count: u32,
+    pub minimum_buffer_byte_size: u32,
+    pub interleaved: bool,
+    pub sample_rate: f64,
+}
+
+const _: () = assert!(core::mem::size_of::<PCMBufferLayoutRaw>() == 64);
+const _: () = assert!(core::mem::align_of::<PCMBufferLayoutRaw>() == 8);
+
 extern "C" {
     pub fn ava_string_free(s: *mut c_char);
     pub fn ava_buffer_free(ptr: *mut c_void);
@@ -61,6 +79,13 @@ extern "C" {
     pub fn av_audio_channel_layout_is_equal(lhs: *mut c_void, rhs: *mut c_void) -> bool;
 
     pub fn av_audio_format_create_standard(
+        sample_rate: f64,
+        channel_count: u32,
+        interleaved: bool,
+        out_error_message: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn av_audio_format_create_with_common_format(
+        common_format: i32,
         sample_rate: f64,
         channel_count: u32,
         interleaved: bool,
@@ -127,6 +152,8 @@ extern "C" {
         frame_length: u32,
         out_error_message: *mut *mut c_char,
     ) -> i32;
+    pub fn ava_pcm_buffer_layout(buffer: *mut c_void, layout: *mut PCMBufferLayoutRaw);
+    pub fn ava_pcm_buffer_is_scheduled(buffer: *mut c_void) -> bool;
 
     pub fn av_audio_connection_point_create(
         node: *mut c_void,

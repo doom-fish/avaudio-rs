@@ -11,8 +11,13 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "AVAudioObjCBridge",
+            path: "Sources/AVAudioObjCBridge",
+            publicHeadersPath: "include"
+        ),
+        .target(
             name: "AVAudioBridge",
-            dependencies: [],
+            dependencies: ["AVAudioObjCBridge"],
             path: "Sources/AVAudioBridge",
             publicHeadersPath: "include"
         )

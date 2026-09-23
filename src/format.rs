@@ -76,6 +76,39 @@ impl AudioFormat {
         Ok(Self { ptr })
     }
 
+    pub fn with_common_format(
+        common_format: AudioCommonFormat,
+        sample_rate: f64,
+        channel_count: u32,
+        interleaved: bool,
+    ) -> Result<Self, AVAudioError> {
+        let raw = match common_format {
+            AudioCommonFormat::PcmFloat32 => 1,
+            AudioCommonFormat::PcmFloat64 => 2,
+            AudioCommonFormat::PcmInt16 => 3,
+            AudioCommonFormat::PcmInt32 => 4,
+            AudioCommonFormat::Other => {
+                return Err(AVAudioError::InvalidArgument(
+                    "AudioCommonFormat::Other has no PCM sample layout".into(),
+                ))
+            }
+        };
+        let mut err: *mut c_char = ptr::null_mut();
+        let ptr = unsafe {
+            ffi::av_audio_format_create_with_common_format(
+                raw,
+                sample_rate,
+                channel_count,
+                interleaved,
+                &raw mut err,
+            )
+        };
+        if ptr.is_null() {
+            return Err(unsafe { from_swift(ffi::status::FORMAT_ERROR, err) });
+        }
+        Ok(Self { ptr })
+    }
+
     pub fn info(&self) -> Result<AudioFormatInfo, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe { ffi::av_audio_format_info_json(self.ptr, &raw mut err) };

@@ -96,7 +96,9 @@ pub use music_track::{
 };
 pub use node::AudioNodeHandle;
 pub use output_node::AudioOutputNode;
-pub use pcm_buffer::{PCMBuffer, PCMBufferInfo};
+pub use pcm_buffer::{
+    PCMBuffer, PCMBufferInfo, PCMChannelData, PCMChannelDataMut, PCMSample, PCMSamples,
+};
 pub use player::{
     AudioPlayerNode, AudioPlayerNodeBufferOptions, AudioPlayerNodeCompletionCallbackType,
     AudioPlayerNodeInfo,
@@ -198,7 +200,9 @@ pub mod prelude {
     };
     pub use crate::node::AudioNodeHandle;
     pub use crate::output_node::AudioOutputNode;
-    pub use crate::pcm_buffer::{PCMBuffer, PCMBufferInfo};
+    pub use crate::pcm_buffer::{
+        PCMBuffer, PCMBufferInfo, PCMChannelData, PCMChannelDataMut, PCMSample, PCMSamples,
+    };
     pub use crate::player::{
         AudioPlayerNode, AudioPlayerNodeBufferOptions, AudioPlayerNodeCompletionCallbackType,
         AudioPlayerNodeInfo,
