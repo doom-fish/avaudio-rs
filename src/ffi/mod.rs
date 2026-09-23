@@ -192,7 +192,8 @@ extern "C" {
         engine: *mut c_void,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
-    pub fn av_audio_engine_prepare(engine: *mut c_void);
+    pub fn av_audio_engine_prepare(engine: *mut c_void, out_error_message: *mut *mut c_char)
+        -> i32;
     pub fn av_audio_engine_start(engine: *mut c_void, out_error_message: *mut *mut c_char) -> i32;
     pub fn av_audio_engine_stop(engine: *mut c_void);
     pub fn av_audio_engine_reset(engine: *mut c_void);
@@ -224,28 +225,28 @@ extern "C" {
     pub fn av_audio_engine_configuration_change_notification_name(
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
-    pub fn av_audio_engine_attach_player_node(engine: *mut c_void, player: *mut c_void);
-    pub fn av_audio_engine_connect_player_to_main_mixer(
-        engine: *mut c_void,
-        player: *mut c_void,
-        format: *mut c_void,
-    );
     pub fn av_audio_engine_copy_main_mixer_output_format(
         engine: *mut c_void,
         bus: usize,
     ) -> *mut c_void;
-    pub fn av_audio_engine_attach_node(engine: *mut c_void, node: *mut c_void);
+    pub fn av_audio_engine_attach_node(
+        engine: *mut c_void,
+        node: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
     pub fn av_audio_engine_connect_nodes(
         engine: *mut c_void,
         from_node: *mut c_void,
         to_node: *mut c_void,
         format: *mut c_void,
-    );
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
     pub fn av_audio_engine_connect_node_to_main_mixer(
         engine: *mut c_void,
         node: *mut c_void,
         format: *mut c_void,
-    );
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
     pub fn av_audio_engine_get_main_mixer_node(engine: *mut c_void) -> *mut c_void;
     pub fn av_audio_engine_get_input_node(engine: *mut c_void) -> *mut c_void;
     pub fn av_audio_engine_get_output_node(engine: *mut c_void) -> *mut c_void;
@@ -259,7 +260,8 @@ extern "C" {
         player: *mut c_void,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
-    pub fn av_audio_player_node_play(player: *mut c_void);
+    pub fn av_audio_player_node_play(player: *mut c_void, out_error_message: *mut *mut c_char)
+        -> i32;
     pub fn av_audio_player_node_pause(player: *mut c_void);
     pub fn av_audio_player_node_stop(player: *mut c_void);
     pub fn av_audio_player_node_schedule_buffer(

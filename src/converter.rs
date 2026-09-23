@@ -198,6 +198,7 @@ impl AudioConverter {
         input_buffer: &PCMBuffer,
         output_buffer: &mut PCMBuffer,
     ) -> Result<AudioConverterOutputStatus, AVAudioError> {
+        output_buffer.ensure_writable()?;
         let mut err: *mut c_char = ptr::null_mut();
         let raw_status = unsafe {
             ffi::av_audio_converter_convert_buffer_with_status(

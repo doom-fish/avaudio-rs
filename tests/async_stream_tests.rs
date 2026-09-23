@@ -62,10 +62,11 @@ fn player_node_completion_stream_basic() {
     let Ok(player) = AudioPlayerNode::new() else {
         return;
     };
-    engine.attach_player_node(&player);
-    engine.connect_player_node_to_main_mixer(&player, None);
-    engine.prepare();
-    if engine.start().is_err() {
+    if engine.attach_player_node(&player).is_err()
+        || engine.connect_player_node_to_main_mixer(&player, None).is_err()
+        || engine.prepare().is_err()
+        || engine.start().is_err()
+    {
         return;
     }
 
@@ -90,7 +91,7 @@ fn player_node_completion_stream_basic() {
         engine.stop();
         return;
     }
-    player.play();
+    player.play().expect("attached player should play");
 
     let event = block(async {
         let deadline = Instant::now() + Duration::from_secs(3);
@@ -150,10 +151,11 @@ fn tap_buffer_stream_basic() {
     let Ok(player) = AudioPlayerNode::new() else {
         return;
     };
-    engine.attach_player_node(&player);
-    engine.connect_player_node_to_main_mixer(&player, None);
-    engine.prepare();
-    if engine.start().is_err() {
+    if engine.attach_player_node(&player).is_err()
+        || engine.connect_player_node_to_main_mixer(&player, None).is_err()
+        || engine.prepare().is_err()
+        || engine.start().is_err()
+    {
         return;
     }
 
@@ -180,7 +182,7 @@ fn tap_buffer_stream_basic() {
         engine.stop();
         return;
     }
-    player.play();
+    player.play().expect("attached player should play");
 
     let maybe_event = block(async {
         let deadline = Instant::now() + Duration::from_millis(500);

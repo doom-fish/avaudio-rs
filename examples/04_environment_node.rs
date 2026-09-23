@@ -6,8 +6,8 @@ use avaudio::prelude::*;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine = AudioEngine::new()?;
     let environment = AudioEnvironmentNode::new()?;
-    engine.attach_node(&environment);
-    engine.connect_node_to_main_mixer(&environment, None);
+    engine.attach_node(&environment)?;
+    engine.connect_node_to_main_mixer(&environment, None)?;
 
     environment.set_listener_position(1.0, 2.0, -3.0);
     environment.set_listener_orientation(15.0, 5.0, 0.0);

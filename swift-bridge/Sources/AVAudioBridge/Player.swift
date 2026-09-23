@@ -1,90 +1,104 @@
+import AVAudioObjCBridge
 import AVFoundation
 import Foundation
 
-final class TypedCompletionCallbackBox {
-    let callback: AVAIntCallback?
-    let userData: UnsafeMutableRawPointer?
-    let dropUserData: AVADropCallback?
-    private var disposed = false
+final class PlayerCompletionBox {
+    private let simpleCallback: AVASimpleCallback?
+    private let typedCallback: AVAIntCallback?
+    private let userData: UnsafeMutableRawPointer?
+    private let dropUserData: AVADropCallback?
+    private let lock = NSLock()
+    private var fired = false
 
     init(
-        callback: AVAIntCallback?,
+        simpleCallback: AVASimpleCallback?,
+        typedCallback: AVAIntCallback?,
         userData: UnsafeMutableRawPointer?,
         dropUserData: AVADropCallback?
     ) {
-        self.callback = callback
+        self.simpleCallback = simpleCallback
+        self.typedCallback = typedCallback
         self.userData = userData
         self.dropUserData = dropUserData
     }
 
-    func fire(_ value: Int64) {
-        callback?(userData, value)
-        dispose()
+    func fire(_ type: AVAudioPlayerNodeCompletionCallbackType) {
+        lock.lock()
+        let first = !fired
+        fired = true
+        lock.unlock()
+        guard first else { return }
+        if let typedCallback {
+            typedCallback(userData, Int64(type.rawValue))
+        } else {
+            simpleCallback?(userData)
+        }
     }
 
-    func dispose() {
-        guard !disposed else { return }
-        disposed = true
+    deinit {
         if let userData, let dropUserData {
             dropUserData(userData)
         }
     }
 }
 
+func avaPlayerCompletionBox(
+    simpleCallback: AVASimpleCallback?,
+    typedCallback: AVAIntCallback?,
+    userData: UnsafeMutableRawPointer?,
+    dropUserData: AVADropCallback?
+) -> PlayerCompletionBox? {
+    guard simpleCallback != nil || typedCallback != nil || userData != nil || dropUserData != nil else {
+        return nil
+    }
+    return PlayerCompletionBox(
+        simpleCallback: simpleCallback,
+        typedCallback: typedCallback,
+        userData: userData,
+        dropUserData: dropUserData
+    )
+}
+
+func avaScheduleBuffer(
+    _ node: AVAudioPlayerNode,
+    _ buffer: AVAudioPCMBuffer,
+    _ when: AVAudioTime?,
+    _ options: AVAudioPlayerNodeBufferOptions,
+    _ callbackType: AVAudioPlayerNodeCompletionCallbackType,
+    _ completion: ((AVAudioPlayerNodeCompletionCallbackType) -> Void)?,
+    _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    var error: NSError?
+    guard AVAXPlayerScheduleBuffer(node, buffer, when, options, callbackType, completion, &error) else {
+        avaReportObjCFailure("AVAudioPlayerNode.scheduleBuffer", error, outErrorMessage)
+        return AVA_PLAYER_ERROR
+    }
+    return AVA_OK
+}
+
+func avaScheduleFile(
+    _ node: AVAudioPlayerNode,
+    _ file: AVAudioFile,
+    _ when: AVAudioTime?,
+    _ callbackType: AVAudioPlayerNodeCompletionCallbackType,
+    _ completion: ((AVAudioPlayerNodeCompletionCallbackType) -> Void)?,
+    _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    var error: NSError?
+    guard AVAXPlayerScheduleFile(node, file, when, callbackType, completion, &error) else {
+        avaReportObjCFailure("AVAudioPlayerNode.scheduleFile", error, outErrorMessage)
+        return AVA_PLAYER_ERROR
+    }
+    return AVA_OK
+}
+
+private func avaFire(_ box: PlayerCompletionBox?) -> ((AVAudioPlayerNodeCompletionCallbackType) -> Void)? {
+    guard let box else { return nil }
+    return { type in box.fire(type) }
+}
+
 final class AudioPlayerNodeBox {
     let node = AVAudioPlayerNode()
-    private var nextCompletionId = 0
-    private var pendingCompletions: [Int: CompletionCallbackBox] = [:]
-    private var pendingTypedCompletions: [Int: TypedCompletionCallbackBox] = [:]
-
-    deinit {
-        pendingCompletions.values.forEach { $0.dispose() }
-        pendingCompletions.removeAll()
-        pendingTypedCompletions.values.forEach { $0.dispose() }
-        pendingTypedCompletions.removeAll()
-    }
-
-    func addCompletion(
-        callback: AVASimpleCallback?,
-        userData: UnsafeMutableRawPointer?,
-        dropUserData: AVADropCallback?
-    ) -> (() -> Void)? {
-        guard callback != nil || dropUserData != nil || userData != nil else {
-            return nil
-        }
-        let id = nextCompletionId
-        nextCompletionId += 1
-        let box = CompletionCallbackBox(callback: callback, userData: userData, dropUserData: dropUserData)
-        pendingCompletions[id] = box
-        return { [weak self] in
-            guard let self else {
-                box.fire()
-                return
-            }
-            self.pendingCompletions.removeValue(forKey: id)?.fire()
-        }
-    }
-
-    func addTypedCompletion(
-        callback: AVAIntCallback?,
-        userData: UnsafeMutableRawPointer?,
-        dropUserData: AVADropCallback?
-    ) -> ((AVAudioPlayerNodeCompletionCallbackType) -> Void)? {
-        guard callback != nil || dropUserData != nil || userData != nil else {
-            return nil
-        }
-        let id = nextCompletionId
-        nextCompletionId += 1
-        let box = TypedCompletionCallbackBox(callback: callback, userData: userData, dropUserData: dropUserData)
-        pendingTypedCompletions[id] = box
-        return { [weak self] value in
-            guard let self else {
-                box.fire(Int64(value.rawValue))
-                return
-            }
-            self.pendingTypedCompletions.removeValue(forKey: id)?.fire(Int64(value.rawValue))
-        }
-    }
 }
 
 @_cdecl("av_audio_player_node_create")
@@ -123,9 +137,17 @@ public func av_audio_player_node_info_json(
 }
 
 @_cdecl("av_audio_player_node_play")
-public func av_audio_player_node_play(_ playerPtr: UnsafeMutableRawPointer) {
+public func av_audio_player_node_play(
+    _ playerPtr: UnsafeMutableRawPointer,
+    _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
     let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
-    player.node.play()
+    var error: NSError?
+    guard AVAXPlayerPlay(player.node, &error) else {
+        avaReportObjCFailure("AVAudioPlayerNode.play", error, outErrorMessage)
+        return AVA_PLAYER_ERROR
+    }
+    return AVA_OK
 }
 
 @_cdecl("av_audio_player_node_pause")
@@ -149,11 +171,15 @@ public func av_audio_player_node_schedule_buffer(
     _ dropUserData: AVADropCallback?,
     _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    let completion = avaPlayerCompletionBox(
+        simpleCallback: callback,
+        typedCallback: nil,
+        userData: userData,
+        dropUserData: dropUserData
+    )
     let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
     let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
-    let completion = player.addCompletion(callback: callback, userData: userData, dropUserData: dropUserData)
-    player.node.scheduleBuffer(buffer, completionHandler: completion)
-    return AVA_OK
+    return avaScheduleBuffer(player.node, buffer, nil, [], .dataConsumed, avaFire(completion), outErrorMessage)
 }
 
 @_cdecl("av_audio_player_node_schedule_file")
@@ -165,11 +191,15 @@ public func av_audio_player_node_schedule_file(
     _ dropUserData: AVADropCallback?,
     _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    let completion = avaPlayerCompletionBox(
+        simpleCallback: callback,
+        typedCallback: nil,
+        userData: userData,
+        dropUserData: dropUserData
+    )
     let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
     let file = Unmanaged<AVAudioFile>.fromOpaque(filePtr).takeUnretainedValue()
-    let completion = player.addCompletion(callback: callback, userData: userData, dropUserData: dropUserData)
-    player.node.scheduleFile(file, at: nil, completionHandler: completion)
-    return AVA_OK
+    return avaScheduleFile(player.node, file, nil, .dataConsumed, avaFire(completion), outErrorMessage)
 }
 
 @_cdecl("av_audio_player_node_schedule_buffer_with_options")
@@ -183,13 +213,17 @@ public func av_audio_player_node_schedule_buffer_with_options(
     _ dropUserData: AVADropCallback?,
     _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    let completion = avaPlayerCompletionBox(
+        simpleCallback: callback,
+        typedCallback: nil,
+        userData: userData,
+        dropUserData: dropUserData
+    )
     let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
     let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
     let when = whenPtr.map { Unmanaged<AVAudioTime>.fromOpaque($0).takeUnretainedValue() }
     let options = AVAudioPlayerNodeBufferOptions(rawValue: optionsRaw)
-    let completion = player.addCompletion(callback: callback, userData: userData, dropUserData: dropUserData)
-    player.node.scheduleBuffer(buffer, at: when, options: options, completionHandler: completion)
-    return AVA_OK
+    return avaScheduleBuffer(player.node, buffer, when, options, .dataConsumed, avaFire(completion), outErrorMessage)
 }
 
 @_cdecl("av_audio_player_node_schedule_buffer_with_callback_type")
@@ -204,23 +238,21 @@ public func av_audio_player_node_schedule_buffer_with_callback_type(
     _ dropUserData: AVADropCallback?,
     _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
-    let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
-    let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
-    let when = whenPtr.map { Unmanaged<AVAudioTime>.fromOpaque($0).takeUnretainedValue() }
-    let options = AVAudioPlayerNodeBufferOptions(rawValue: optionsRaw)
+    let completion = avaPlayerCompletionBox(
+        simpleCallback: nil,
+        typedCallback: callback,
+        userData: userData,
+        dropUserData: dropUserData
+    )
     guard let callbackType = AVAudioPlayerNodeCompletionCallbackType(rawValue: Int(callbackTypeRaw)) else {
         outErrorMessage?.pointee = ffiString("invalid AVAudioPlayerNodeCompletionCallbackType")
         return AVA_INVALID_ARGUMENT
     }
-    let completion = player.addTypedCompletion(callback: callback, userData: userData, dropUserData: dropUserData)
-    player.node.scheduleBuffer(
-        buffer,
-        at: when,
-        options: options,
-        completionCallbackType: callbackType,
-        completionHandler: completion
-    )
-    return AVA_OK
+    let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
+    let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
+    let when = whenPtr.map { Unmanaged<AVAudioTime>.fromOpaque($0).takeUnretainedValue() }
+    let options = AVAudioPlayerNodeBufferOptions(rawValue: optionsRaw)
+    return avaScheduleBuffer(player.node, buffer, when, options, callbackType, avaFire(completion), outErrorMessage)
 }
 
 @_cdecl("av_audio_player_node_schedule_file_with_callback_type")
@@ -234,19 +266,18 @@ public func av_audio_player_node_schedule_file_with_callback_type(
     _ dropUserData: AVADropCallback?,
     _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
-    let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
-    let file = Unmanaged<AVAudioFile>.fromOpaque(filePtr).takeUnretainedValue()
-    let when = whenPtr.map { Unmanaged<AVAudioTime>.fromOpaque($0).takeUnretainedValue() }
+    let completion = avaPlayerCompletionBox(
+        simpleCallback: nil,
+        typedCallback: callback,
+        userData: userData,
+        dropUserData: dropUserData
+    )
     guard let callbackType = AVAudioPlayerNodeCompletionCallbackType(rawValue: Int(callbackTypeRaw)) else {
         outErrorMessage?.pointee = ffiString("invalid AVAudioPlayerNodeCompletionCallbackType")
         return AVA_INVALID_ARGUMENT
     }
-    let completion = player.addTypedCompletion(callback: callback, userData: userData, dropUserData: dropUserData)
-    player.node.scheduleFile(
-        file,
-        at: when,
-        completionCallbackType: callbackType,
-        completionHandler: completion
-    )
-    return AVA_OK
+    let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
+    let file = Unmanaged<AVAudioFile>.fromOpaque(filePtr).takeUnretainedValue()
+    let when = whenPtr.map { Unmanaged<AVAudioTime>.fromOpaque($0).takeUnretainedValue() }
+    return avaScheduleFile(player.node, file, when, callbackType, avaFire(completion), outErrorMessage)
 }

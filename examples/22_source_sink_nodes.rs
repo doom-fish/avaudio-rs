@@ -12,9 +12,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     })?;
     let engine = AudioEngine::new()?;
 
-    engine.attach_node(&source);
-    engine.attach_node(&sink);
-    engine.connect_node_to_main_mixer(&source, Some(&format));
+    engine.attach_node(&source)?;
+    engine.attach_node(&sink)?;
+    engine.connect_node_to_main_mixer(&source, Some(&format))?;
 
     println!("attached source and sink nodes to the audio engine");
     Ok(())

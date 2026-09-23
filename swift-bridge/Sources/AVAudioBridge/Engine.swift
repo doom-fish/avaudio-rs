@@ -1,3 +1,4 @@
+import AVAudioObjCBridge
 import AVFoundation
 import Foundation
 
@@ -45,9 +46,17 @@ public func av_audio_engine_info_json(
 }
 
 @_cdecl("av_audio_engine_prepare")
-public func av_audio_engine_prepare(_ enginePtr: UnsafeMutableRawPointer) {
+public func av_audio_engine_prepare(
+    _ enginePtr: UnsafeMutableRawPointer,
+    _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
     let engine = Unmanaged<AVAudioEngine>.fromOpaque(enginePtr).takeUnretainedValue()
-    engine.prepare()
+    var error: NSError?
+    guard AVAXEnginePrepare(engine, &error) else {
+        avaReportObjCFailure("AVAudioEngine.prepare", error, outErrorMessage)
+        return AVA_ENGINE_ERROR
+    }
+    return AVA_OK
 }
 
 @_cdecl("av_audio_engine_start")
@@ -56,13 +65,12 @@ public func av_audio_engine_start(
     _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     let engine = Unmanaged<AVAudioEngine>.fromOpaque(enginePtr).takeUnretainedValue()
-    do {
-        try engine.start()
-        return AVA_OK
-    } catch {
-        outErrorMessage?.pointee = ffiString(error.localizedDescription)
+    var error: NSError?
+    guard AVAXEngineStart(engine, &error) else {
+        avaReportObjCFailure("AVAudioEngine.start", error, outErrorMessage)
         return AVA_ENGINE_ERROR
     }
+    return AVA_OK
 }
 
 @_cdecl("av_audio_engine_stop")
@@ -166,28 +174,6 @@ public func av_audio_engine_configuration_change_notification_name(
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutablePointer<CChar>? {
     ffiString(NSNotification.Name.AVAudioEngineConfigurationChange.rawValue)
-}
-
-@_cdecl("av_audio_engine_attach_player_node")
-public func av_audio_engine_attach_player_node(
-    _ enginePtr: UnsafeMutableRawPointer,
-    _ playerPtr: UnsafeMutableRawPointer
-) {
-    let engine = Unmanaged<AVAudioEngine>.fromOpaque(enginePtr).takeUnretainedValue()
-    let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
-    engine.attach(player.node)
-}
-
-@_cdecl("av_audio_engine_connect_player_to_main_mixer")
-public func av_audio_engine_connect_player_to_main_mixer(
-    _ enginePtr: UnsafeMutableRawPointer,
-    _ playerPtr: UnsafeMutableRawPointer,
-    _ formatPtr: UnsafeMutableRawPointer?
-) {
-    let engine = Unmanaged<AVAudioEngine>.fromOpaque(enginePtr).takeUnretainedValue()
-    let player = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerPtr).takeUnretainedValue()
-    let format = formatPtr.map { Unmanaged<AVAudioFormat>.fromOpaque($0).takeUnretainedValue() }
-    engine.connect(player.node, to: engine.mainMixerNode, format: format)
 }
 
 @_cdecl("av_audio_engine_copy_main_mixer_output_format")

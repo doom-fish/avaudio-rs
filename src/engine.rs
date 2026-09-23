@@ -144,8 +144,13 @@ impl AudioEngine {
         Ok(self.info()?.is_running)
     }
 
-    pub fn prepare(&self) {
-        unsafe { ffi::av_audio_engine_prepare(self.ptr) };
+    pub fn prepare(&self) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe { ffi::av_audio_engine_prepare(self.ptr, &raw mut err) };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     pub fn start(&self) -> Result<(), AVAudioError> {
@@ -245,6 +250,7 @@ impl AudioEngine {
         number_of_frames: u32,
         buffer: &mut PCMBuffer,
     ) -> Result<AudioEngineManualRenderingStatus, AVAudioError> {
+        buffer.ensure_writable()?;
         let mut err: *mut c_char = ptr::null_mut();
         let raw_status = unsafe {
             ffi::av_audio_engine_render_offline(
@@ -266,6 +272,7 @@ impl AudioEngine {
         number_of_frames: u32,
         buffer: &mut PCMBuffer,
     ) -> Result<AudioEngineManualRenderingStatus, AVAudioError> {
+        buffer.ensure_writable()?;
         let mut err: *mut c_char = ptr::null_mut();
         let raw_status = unsafe {
             ffi::av_audio_engine_manual_rendering_block_render(
@@ -296,20 +303,26 @@ impl AudioEngine {
         Ok(name)
     }
 
-    pub fn attach_player_node(&self, player: &AudioPlayerNode) {
-        self.attach_node(player);
+    pub fn attach_player_node(&self, player: &AudioPlayerNode) -> Result<(), AVAudioError> {
+        self.attach_node(player)
     }
 
-    pub fn attach_node(&self, node: &dyn AudioNodeHandle) {
-        unsafe { ffi::av_audio_engine_attach_node(self.ptr, node.as_node_ptr()) };
+    pub fn attach_node(&self, node: &dyn AudioNodeHandle) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status =
+            unsafe { ffi::av_audio_engine_attach_node(self.ptr, node.as_node_ptr(), &raw mut err) };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     pub fn connect_player_node_to_main_mixer(
         &self,
         player: &AudioPlayerNode,
         format: Option<&AudioFormat>,
-    ) {
-        self.connect_node_to_main_mixer(player, format);
+    ) -> Result<(), AVAudioError> {
+        self.connect_node_to_main_mixer(player, format)
     }
 
     pub fn connect_nodes(
@@ -317,29 +330,41 @@ impl AudioEngine {
         from: &dyn AudioNodeHandle,
         to: &dyn AudioNodeHandle,
         format: Option<&AudioFormat>,
-    ) {
-        unsafe {
+    ) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
             ffi::av_audio_engine_connect_nodes(
                 self.ptr,
                 from.as_node_ptr(),
                 to.as_node_ptr(),
                 format.map_or(ptr::null_mut(), |format| format.ptr),
-            );
+                &raw mut err,
+            )
         };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     pub fn connect_node_to_main_mixer(
         &self,
         node: &dyn AudioNodeHandle,
         format: Option<&AudioFormat>,
-    ) {
-        unsafe {
+    ) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
             ffi::av_audio_engine_connect_node_to_main_mixer(
                 self.ptr,
                 node.as_node_ptr(),
                 format.map_or(ptr::null_mut(), |format| format.ptr),
-            );
+                &raw mut err,
+            )
         };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     pub fn main_mixer_node(&self) -> Result<AudioMixerNode, AVAudioError> {

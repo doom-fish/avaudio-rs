@@ -121,33 +121,3 @@ func avaEncodeFormatInfo(_ format: AVAudioFormat) -> AudioFormatInfoPayload {
         isInterleaved: format.isInterleaved
     )
 }
-
-final class CompletionCallbackBox {
-    let callback: AVASimpleCallback?
-    let userData: UnsafeMutableRawPointer?
-    let dropUserData: AVADropCallback?
-    private var disposed = false
-
-    init(
-        callback: AVASimpleCallback?,
-        userData: UnsafeMutableRawPointer?,
-        dropUserData: AVADropCallback?
-    ) {
-        self.callback = callback
-        self.userData = userData
-        self.dropUserData = dropUserData
-    }
-
-    func fire() {
-        callback?(userData)
-        dispose()
-    }
-
-    func dispose() {
-        guard !disposed else { return }
-        disposed = true
-        if let userData, let dropUserData {
-            dropUserData(userData)
-        }
-    }
-}

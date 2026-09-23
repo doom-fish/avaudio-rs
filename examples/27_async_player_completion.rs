@@ -17,10 +17,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let engine = AudioEngine::new()?;
     let player = AudioPlayerNode::new()?;
-    engine.attach_player_node(&player);
-    engine.connect_player_node_to_main_mixer(&player, None);
-    engine.prepare();
-    if let Err(error) = engine.start() {
+    engine.attach_player_node(&player)?;
+    engine.connect_player_node_to_main_mixer(&player, None)?;
+    if let Err(error) = engine.prepare().and_then(|()| engine.start()) {
         print_skip(&format!("engine unavailable (headless): {error}"));
         return Ok(());
     }
@@ -28,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stream = PlayerNodeCompletionStream::subscribe(&player, 4);
     let file = AudioFile::open_for_reading(&audio_path)?;
     stream.schedule_file(&file)?;
-    player.play();
+    player.play()?;
 
     let event = pollster::block_on(async {
         let deadline = Instant::now() + Duration::from_secs(3);

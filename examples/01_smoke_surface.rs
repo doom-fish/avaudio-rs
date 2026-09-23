@@ -28,10 +28,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let engine = AudioEngine::new()?;
     let player = AudioPlayerNode::new()?;
-    engine.attach_player_node(&player);
-    engine.connect_player_node_to_main_mixer(&player, Some(&format));
-    engine.prepare();
-    if let Err(error) = engine.start() {
+    engine.attach_player_node(&player)?;
+    engine.connect_player_node_to_main_mixer(&player, Some(&format))?;
+    if let Err(error) = engine.prepare().and_then(|()| engine.start()) {
         print_skip(&format!("engine.start() unavailable (headless): {error}"));
         return Ok(());
     }
@@ -41,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     player.schedule_buffer_with_completion(&buffer, move || {
         completed_flag.store(true, Ordering::SeqCst);
     })?;
-    player.play();
+    player.play()?;
 
     short_sleep();
     println!("engine running: {}", engine.is_running()?);

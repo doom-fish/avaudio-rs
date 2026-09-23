@@ -7,8 +7,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let engine = AudioEngine::new()?;
     let player = AudioPlayerNode::new()?;
-    engine.attach_node(&player);
-    engine.connect_node_to_main_mixer(&player, Some(&format));
+    engine.attach_node(&player)?;
+    engine.connect_node_to_main_mixer(&player, Some(&format))?;
     player.schedule_buffer(&buffer)?;
 
     println!("player info: {:?}", player.info()?);

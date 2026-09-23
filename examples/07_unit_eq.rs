@@ -6,8 +6,8 @@ use avaudio::prelude::*;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine = AudioEngine::new()?;
     let eq = AudioUnitEQ::new(2)?;
-    engine.attach_node(&eq);
-    engine.connect_node_to_main_mixer(&eq, None);
+    engine.attach_node(&eq)?;
+    engine.connect_node_to_main_mixer(&eq, None)?;
 
     eq.set_global_gain(1.5);
     let band = eq.band_info(0)?;

@@ -107,8 +107,8 @@ fn mixing_and_io_surfaces() -> Result<(), Box<dyn std::error::Error>> {
 
     let engine = AudioEngine::new()?;
     let main_mixer = engine.main_mixer_node()?;
-    engine.attach_node(&player);
-    engine.connect_node_to_main_mixer(&player, None);
+    engine.attach_node(&player)?;
+    engine.connect_node_to_main_mixer(&player, None)?;
     let destination = player
         .destination_for_mixer(&main_mixer, 0)?
         .expect("connected player should vend a mixing destination");
@@ -170,8 +170,8 @@ fn player_delegate_and_typed_completion_surfaces() -> Result<(), Box<dyn std::er
     let format = AudioFormat::standard(48_000.0, 1, false)?;
     let mut buffer = PCMBuffer::new(&format, 256)?;
     buffer.set_frame_length(128)?;
-    engine.attach_node(&player);
-    engine.connect_node_to_main_mixer(&player, Some(&format));
+    engine.attach_node(&player)?;
+    engine.connect_node_to_main_mixer(&player, Some(&format))?;
     let options =
         AudioPlayerNodeBufferOptions::LOOPS | AudioPlayerNodeBufferOptions::INTERRUPTS_AT_LOOP;
     assert_eq!(options.bits(), 5);

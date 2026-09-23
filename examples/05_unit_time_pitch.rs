@@ -6,8 +6,8 @@ use avaudio::prelude::*;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine = AudioEngine::new()?;
     let time_pitch = AudioUnitTimePitch::new()?;
-    engine.attach_node(&time_pitch);
-    engine.connect_node_to_main_mixer(&time_pitch, None);
+    engine.attach_node(&time_pitch)?;
+    engine.connect_node_to_main_mixer(&time_pitch, None)?;
 
     time_pitch.set_pitch(300.0);
     time_pitch.set_rate(1.2);

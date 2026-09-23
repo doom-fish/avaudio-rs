@@ -17,21 +17,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let player = AudioPlayerNode::new()?;
     let environment = AudioEnvironmentNode::new()?;
 
-    engine.attach_node(&player);
-    engine.attach_node(&environment);
-    engine.connect_nodes(&player, &environment, Some(&format));
-    engine.connect_node_to_main_mixer(&environment, Some(&format));
+    engine.attach_node(&player)?;
+    engine.attach_node(&environment)?;
+    engine.connect_nodes(&player, &environment, Some(&format))?;
+    engine.connect_node_to_main_mixer(&environment, Some(&format))?;
     environment.set_listener_position(0.0, 0.0, 0.0);
     environment.set_listener_orientation(0.0, 0.0, 0.0);
     environment.set_reverb_blend(12.0);
-    engine.prepare();
-    if let Err(error) = engine.start() {
+    if let Err(error) = engine.prepare().and_then(|()| engine.start()) {
         print_skip(&format!("engine.start() unavailable (headless): {error}"));
         return Ok(());
     }
 
     player.schedule_file(&file)?;
-    player.play();
+    player.play()?;
     short_sleep();
     println!("player playing: {}", player.is_playing()?);
     println!(

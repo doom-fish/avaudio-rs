@@ -144,8 +144,13 @@ impl AudioPlayerNode {
         Ok(self.info()?.is_playing)
     }
 
-    pub fn play(&self) {
-        unsafe { ffi::av_audio_player_node_play(self.ptr) };
+    pub fn play(&self) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe { ffi::av_audio_player_node_play(self.ptr, &raw mut err) };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     pub fn pause(&self) {
@@ -243,7 +248,6 @@ impl AudioPlayerNode {
             )
         };
         if status != ffi::status::OK {
-            unsafe { typed_completion_drop(userdata) };
             return Err(unsafe { from_swift(status, err) });
         }
         Ok(())
@@ -278,7 +282,6 @@ impl AudioPlayerNode {
             )
         };
         if status != ffi::status::OK {
-            unsafe { typed_completion_drop(userdata) };
             return Err(unsafe { from_swift(status, err) });
         }
         Ok(())
@@ -305,9 +308,6 @@ impl AudioPlayerNode {
             )
         };
         if status != ffi::status::OK {
-            if let Some(drop_fn) = drop_fn {
-                unsafe { drop_fn(userdata) };
-            }
             return Err(unsafe { from_swift(status, err) });
         }
         Ok(())
@@ -334,9 +334,6 @@ impl AudioPlayerNode {
             )
         };
         if status != ffi::status::OK {
-            if let Some(drop_fn) = drop_fn {
-                unsafe { drop_fn(userdata) };
-            }
             return Err(unsafe { from_swift(status, err) });
         }
         Ok(())
