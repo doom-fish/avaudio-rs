@@ -23,6 +23,23 @@ fn input_node_tap_scaffold() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[test]
+fn input_node_tap_scaffold_does_not_replace_an_existing_tap(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let engine = AudioEngine::new()?;
+    let input = engine.input_node()?;
+    input.install_tap_scaffold(0, 256, None)?;
+    assert!(matches!(
+        input.install_tap_scaffold(0, 256, None),
+        Err(AVAudioError::CallbackError(_))
+    ));
+    input.remove_tap(0)?;
+    input.install_tap_scaffold(0, 256, None)?;
+    input.remove_tap(0)?;
+    assert!(input.install_tap_scaffold(usize::MAX, 256, None).is_err());
+    Ok(())
+}
+
 fn render_manual_input(
     buffer_channels: u32,
 ) -> Result<(AudioEngineManualRenderingStatus, PCMBuffer), Box<dyn std::error::Error>> {

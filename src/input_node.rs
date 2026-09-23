@@ -31,6 +31,11 @@ fn bus_to_i32(bus: usize) -> Result<i32, AVAudioError> {
         .map_err(|_| AVAudioError::InvalidArgument("bus index exceeds Int32 range".into()))
 }
 
+fn bus_to_u32(bus: usize) -> Result<u32, AVAudioError> {
+    u32::try_from(bus)
+        .map_err(|_| AVAudioError::InvalidArgument("bus index exceeds UInt32 range".into()))
+}
+
 /// Manual-rendering input buffer returned to an `AVAudioIONodeInputBlock`.
 pub struct AudioManualRenderingInput {
     buffer: PCMBuffer,
@@ -134,26 +139,26 @@ impl AudioInputNode {
         buffer_size: u32,
         format: Option<&AudioFormat>,
     ) -> Result<(), AVAudioError> {
-        let bus = bus_to_i32(bus)?;
+        let bus = bus_to_u32(bus)?;
+        let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
             ffi::av_audio_input_node_install_tap_scaffold(
                 self.ptr,
                 bus,
                 buffer_size,
                 format.map_or(ptr::null_mut(), |format| format.ptr),
+                &raw mut err,
             )
         };
         if status != ffi::status::OK {
-            return Err(AVAudioError::OperationFailed(
-                "failed to install input-node tap scaffold".into(),
-            ));
+            return Err(unsafe { from_swift(status, err) });
         }
         Ok(())
     }
 
     /// Removes a previously installed tap scaffold.
     pub fn remove_tap(&self, bus: usize) -> Result<(), AVAudioError> {
-        let bus = bus_to_i32(bus)?;
+        let bus = bus_to_u32(bus)?;
         unsafe { ffi::av_audio_input_node_remove_tap(self.ptr, bus) };
         Ok(())
     }

@@ -260,8 +260,10 @@ extern "C" {
         player: *mut c_void,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
-    pub fn av_audio_player_node_play(player: *mut c_void, out_error_message: *mut *mut c_char)
-        -> i32;
+    pub fn av_audio_player_node_play(
+        player: *mut c_void,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
     pub fn av_audio_player_node_pause(player: *mut c_void);
     pub fn av_audio_player_node_stop(player: *mut c_void);
     pub fn av_audio_player_node_schedule_buffer(
@@ -434,11 +436,12 @@ extern "C" {
     ) -> *mut c_char;
     pub fn av_audio_input_node_install_tap_scaffold(
         node: *mut c_void,
-        bus: i32,
+        bus: u32,
         buffer_size: u32,
         format: *mut c_void,
+        out_error_message: *mut *mut c_char,
     ) -> i32;
-    pub fn av_audio_input_node_remove_tap(node: *mut c_void, bus: i32);
+    pub fn av_audio_input_node_remove_tap(node: *mut c_void, bus: u32);
     pub fn av_audio_input_node_set_manual_rendering_input_pcm_format(
         node: *mut c_void,
         format: *mut c_void,
@@ -1075,6 +1078,7 @@ extern "C" {
         engine: *mut c_void,
         on_event: StreamEventCallback,
         ctx: *mut c_void,
+        release_context: DropCallback,
     ) -> *mut c_void;
     pub fn ava_engine_config_change_unsubscribe(handle: *mut c_void);
 
@@ -1090,6 +1094,7 @@ extern "C" {
         player: *mut c_void,
         on_event: StreamEventCallback,
         ctx: *mut c_void,
+        release_context: DropCallback,
     ) -> *mut c_void;
     pub fn ava_player_node_stream_schedule_buffer(
         handle: *mut c_void,
@@ -1108,6 +1113,7 @@ extern "C" {
         recorder: *mut c_void,
         on_event: StreamEventCallback,
         ctx: *mut c_void,
+        release_context: DropCallback,
     ) -> *mut c_void;
     pub fn ava_recorder_stream_unsubscribe(handle: *mut c_void);
 
@@ -1115,16 +1121,19 @@ extern "C" {
         player: *mut c_void,
         on_event: StreamEventCallback,
         ctx: *mut c_void,
+        release_context: DropCallback,
     ) -> *mut c_void;
     pub fn ava_simple_player_stream_unsubscribe(handle: *mut c_void);
 
     pub fn ava_node_tap_subscribe(
         node: *mut c_void,
-        bus: usize,
+        bus: u32,
         buffer_size: u32,
         format: *mut c_void,
         on_event: StreamEventCallback,
         ctx: *mut c_void,
+        release_context: DropCallback,
+        out_error: *mut *mut c_char,
     ) -> *mut c_void;
     pub fn ava_node_tap_unsubscribe(handle: *mut c_void);
 }

@@ -1,3 +1,4 @@
+import AVAudioObjCBridge
 import AVFoundation
 import Foundation
 
@@ -6,15 +7,18 @@ public typealias AVAStreamEventCallback = @convention(c) (Int32, UnsafeRawPointe
 final class ConfigChangeBridge: NSObject {
     let onEvent: AVAStreamEventCallback
     let ctx: UnsafeMutableRawPointer
+    let releaseContext: AVADropCallback
     var observer: NSObjectProtocol?
 
     init(
         enginePtr: UnsafeMutableRawPointer,
         onEvent: @escaping AVAStreamEventCallback,
-        ctx: UnsafeMutableRawPointer
+        ctx: UnsafeMutableRawPointer,
+        releaseContext: @escaping AVADropCallback
     ) {
         self.onEvent = onEvent
         self.ctx = ctx
+        self.releaseContext = releaseContext
         super.init()
         let nc = NotificationCenter.default
         observer = nc.addObserver(
@@ -31,6 +35,7 @@ final class ConfigChangeBridge: NSObject {
         if let observer {
             NotificationCenter.default.removeObserver(observer)
         }
+        releaseContext(ctx)
     }
 }
 
@@ -38,9 +43,15 @@ final class ConfigChangeBridge: NSObject {
 public func ava_engine_config_change_subscribe(
     _ enginePtr: UnsafeMutableRawPointer,
     _ onEvent: AVAStreamEventCallback,
-    _ ctx: UnsafeMutableRawPointer
+    _ ctx: UnsafeMutableRawPointer,
+    _ releaseContext: AVADropCallback
 ) -> UnsafeMutableRawPointer {
-    let bridge = ConfigChangeBridge(enginePtr: enginePtr, onEvent: onEvent, ctx: ctx)
+    let bridge = ConfigChangeBridge(
+        enginePtr: enginePtr,
+        onEvent: onEvent,
+        ctx: ctx,
+        releaseContext: releaseContext
+    )
     return Unmanaged.passRetained(bridge).toOpaque()
 }
 
@@ -53,30 +64,27 @@ final class PlayerNodeStreamBridge: NSObject {
     let node: AVAudioPlayerNode
     let onEvent: AVAStreamEventCallback
     let ctx: UnsafeMutableRawPointer
+    let releaseContext: AVADropCallback
 
     init(
         playerBoxPtr: UnsafeMutableRawPointer,
         onEvent: @escaping AVAStreamEventCallback,
-        ctx: UnsafeMutableRawPointer
+        ctx: UnsafeMutableRawPointer,
+        releaseContext: @escaping AVADropCallback
     ) {
         self.node = Unmanaged<AudioPlayerNodeBox>.fromOpaque(playerBoxPtr).takeUnretainedValue().node
         self.onEvent = onEvent
         self.ctx = ctx
+        self.releaseContext = releaseContext
         super.init()
     }
 
-    func scheduleBuffer(bufferPtr: UnsafeMutableRawPointer, options: UInt) {
-        let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
-        let opts = AVAudioPlayerNodeBufferOptions(rawValue: options)
-        node.scheduleBuffer(buffer, at: nil, options: opts, completionCallbackType: .dataPlayedBack) { [weak self] cbType in
-            guard let self else { return }
-            self.onEvent(Int32(cbType.rawValue), nil, self.ctx)
-        }
+    deinit {
+        releaseContext(ctx)
     }
 
-    func scheduleFile(filePtr: UnsafeMutableRawPointer) {
-        let file = Unmanaged<AVAudioFile>.fromOpaque(filePtr).takeUnretainedValue()
-        node.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) { [weak self] cbType in
+    func completion() -> (AVAudioPlayerNodeCompletionCallbackType) -> Void {
+        { [weak self] cbType in
             guard let self else { return }
             self.onEvent(Int32(cbType.rawValue), nil, self.ctx)
         }
@@ -87,9 +95,15 @@ final class PlayerNodeStreamBridge: NSObject {
 public func ava_player_node_stream_subscribe(
     _ playerBoxPtr: UnsafeMutableRawPointer,
     _ onEvent: AVAStreamEventCallback,
-    _ ctx: UnsafeMutableRawPointer
+    _ ctx: UnsafeMutableRawPointer,
+    _ releaseContext: AVADropCallback
 ) -> UnsafeMutableRawPointer {
-    let bridge = PlayerNodeStreamBridge(playerBoxPtr: playerBoxPtr, onEvent: onEvent, ctx: ctx)
+    let bridge = PlayerNodeStreamBridge(
+        playerBoxPtr: playerBoxPtr,
+        onEvent: onEvent,
+        ctx: ctx,
+        releaseContext: releaseContext
+    )
     return Unmanaged.passRetained(bridge).toOpaque()
 }
 
@@ -101,9 +115,16 @@ public func ava_player_node_stream_schedule_buffer(
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     let bridge = Unmanaged<PlayerNodeStreamBridge>.fromOpaque(handle).takeUnretainedValue()
-    bridge.scheduleBuffer(bufferPtr: bufferPtr, options: options)
-    _ = outError
-    return AVA_OK
+    let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
+    return avaScheduleBuffer(
+        bridge.node,
+        buffer,
+        nil,
+        AVAudioPlayerNodeBufferOptions(rawValue: options),
+        .dataPlayedBack,
+        bridge.completion(),
+        outError
+    )
 }
 
 @_cdecl("ava_player_node_stream_schedule_file")
@@ -113,9 +134,8 @@ public func ava_player_node_stream_schedule_file(
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     let bridge = Unmanaged<PlayerNodeStreamBridge>.fromOpaque(handle).takeUnretainedValue()
-    bridge.scheduleFile(filePtr: filePtr)
-    _ = outError
-    return AVA_OK
+    let file = Unmanaged<AVAudioFile>.fromOpaque(filePtr).takeUnretainedValue()
+    return avaScheduleFile(bridge.node, file, nil, .dataPlayedBack, bridge.completion(), outError)
 }
 
 @_cdecl("ava_player_node_stream_unsubscribe")
@@ -126,15 +146,18 @@ public func ava_player_node_stream_unsubscribe(_ handle: UnsafeMutableRawPointer
 final class RecorderStreamBridge: NSObject, AVAudioRecorderDelegate {
     let onEvent: AVAStreamEventCallback
     let ctx: UnsafeMutableRawPointer
+    let releaseContext: AVADropCallback
     weak var recorder: AVAudioRecorder?
 
     init(
         recorderBoxPtr: UnsafeMutableRawPointer,
         onEvent: @escaping AVAStreamEventCallback,
-        ctx: UnsafeMutableRawPointer
+        ctx: UnsafeMutableRawPointer,
+        releaseContext: @escaping AVADropCallback
     ) {
         self.onEvent = onEvent
         self.ctx = ctx
+        self.releaseContext = releaseContext
         let box = Unmanaged<AudioRecorderBox>.fromOpaque(recorderBoxPtr).takeUnretainedValue()
         self.recorder = box.recorder
         super.init()
@@ -146,6 +169,7 @@ final class RecorderStreamBridge: NSObject, AVAudioRecorderDelegate {
         if (recorder?.delegate as AnyObject?) === self {
             recorder?.delegate = nil
         }
+        releaseContext(ctx)
     }
 
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
@@ -167,9 +191,15 @@ final class RecorderStreamBridge: NSObject, AVAudioRecorderDelegate {
 public func ava_recorder_stream_subscribe(
     _ recorderBoxPtr: UnsafeMutableRawPointer,
     _ onEvent: AVAStreamEventCallback,
-    _ ctx: UnsafeMutableRawPointer
+    _ ctx: UnsafeMutableRawPointer,
+    _ releaseContext: AVADropCallback
 ) -> UnsafeMutableRawPointer {
-    let bridge = RecorderStreamBridge(recorderBoxPtr: recorderBoxPtr, onEvent: onEvent, ctx: ctx)
+    let bridge = RecorderStreamBridge(
+        recorderBoxPtr: recorderBoxPtr,
+        onEvent: onEvent,
+        ctx: ctx,
+        releaseContext: releaseContext
+    )
     return Unmanaged.passRetained(bridge).toOpaque()
 }
 
@@ -181,15 +211,18 @@ public func ava_recorder_stream_unsubscribe(_ handle: UnsafeMutableRawPointer) {
 final class SimplePlayerStreamBridge: NSObject, AVAudioPlayerDelegate {
     let onEvent: AVAStreamEventCallback
     let ctx: UnsafeMutableRawPointer
+    let releaseContext: AVADropCallback
     weak var player: AVAudioPlayer?
 
     init(
         playerBoxPtr: UnsafeMutableRawPointer,
         onEvent: @escaping AVAStreamEventCallback,
-        ctx: UnsafeMutableRawPointer
+        ctx: UnsafeMutableRawPointer,
+        releaseContext: @escaping AVADropCallback
     ) {
         self.onEvent = onEvent
         self.ctx = ctx
+        self.releaseContext = releaseContext
         let box = Unmanaged<AudioSimplePlayerBox>.fromOpaque(playerBoxPtr).takeUnretainedValue()
         self.player = box.player
         super.init()
@@ -201,6 +234,7 @@ final class SimplePlayerStreamBridge: NSObject, AVAudioPlayerDelegate {
         if (player?.delegate as AnyObject?) === self {
             player?.delegate = nil
         }
+        releaseContext(ctx)
     }
 
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
@@ -222,9 +256,15 @@ final class SimplePlayerStreamBridge: NSObject, AVAudioPlayerDelegate {
 public func ava_simple_player_stream_subscribe(
     _ playerBoxPtr: UnsafeMutableRawPointer,
     _ onEvent: AVAStreamEventCallback,
-    _ ctx: UnsafeMutableRawPointer
+    _ ctx: UnsafeMutableRawPointer,
+    _ releaseContext: AVADropCallback
 ) -> UnsafeMutableRawPointer {
-    let bridge = SimplePlayerStreamBridge(playerBoxPtr: playerBoxPtr, onEvent: onEvent, ctx: ctx)
+    let bridge = SimplePlayerStreamBridge(
+        playerBoxPtr: playerBoxPtr,
+        onEvent: onEvent,
+        ctx: ctx,
+        releaseContext: releaseContext
+    )
     return Unmanaged.passRetained(bridge).toOpaque()
 }
 
@@ -309,72 +349,79 @@ public func ava_input_node_speech_activity_unsubscribe(_ handle: UnsafeMutableRa
     Unmanaged<MutedSpeechActivityStreamBridge>.fromOpaque(handle).release()
 }
 
-struct TapEventPayload {
-    var frameLength: UInt32
-    var channelCount: UInt32
-    var sampleRate: Double
-}
-
 final class TapBridge: NSObject {
     let node: AVAudioNode
-    let bus: AVAudioNodeBus
+    let bus: UInt32
     let onEvent: AVAStreamEventCallback
     let ctx: UnsafeMutableRawPointer
+    let releaseContext: AVADropCallback
+    private var installed = false
 
     init(
-        nodePtr: UnsafeMutableRawPointer,
-        bus: Int,
-        bufferSize: UInt32,
-        formatPtr: UnsafeMutableRawPointer?,
+        node: AVAudioNode,
+        bus: UInt32,
         onEvent: @escaping AVAStreamEventCallback,
-        ctx: UnsafeMutableRawPointer
+        ctx: UnsafeMutableRawPointer,
+        releaseContext: @escaping AVADropCallback
     ) {
-        self.node = Unmanaged<AVAudioNode>.fromOpaque(nodePtr).takeUnretainedValue()
-        self.bus = AVAudioNodeBus(bus)
+        self.node = node
+        self.bus = bus
         self.onEvent = onEvent
         self.ctx = ctx
+        self.releaseContext = releaseContext
         super.init()
-        let format = formatPtr.map { Unmanaged<AVAudioFormat>.fromOpaque($0).takeUnretainedValue() }
-        node.removeTap(onBus: self.bus)
-        node.installTap(onBus: self.bus, bufferSize: AVAudioFrameCount(bufferSize), format: format) { [weak self] buffer, _ in
+    }
+
+    func install(bufferSize: UInt32, format: AVAudioFormat?, error: inout NSError?) -> Bool {
+        installed = AVAXNodeInstallTap(node, UInt(bus), bufferSize, format, { [weak self] buffer, _ in
             guard let self else { return }
-            var payload = TapEventPayload(
-                frameLength: buffer.frameLength,
-                channelCount: buffer.format.channelCount,
-                sampleRate: buffer.format.sampleRate
-            )
-            withUnsafePointer(to: &payload) { ptr in
-                self.onEvent(0, UnsafeRawPointer(ptr), self.ctx)
-            }
-        }
+            self.onEvent(0, UnsafeRawPointer(Unmanaged.passRetained(buffer).toOpaque()), self.ctx)
+        }, &error)
+        return installed
+    }
+
+    func cancel() {
+        guard installed else { return }
+        installed = false
+        node.removeTap(onBus: AVAudioNodeBus(bus))
     }
 
     deinit {
-        node.removeTap(onBus: bus)
+        cancel()
+        releaseContext(ctx)
     }
 }
 
 @_cdecl("ava_node_tap_subscribe")
 public func ava_node_tap_subscribe(
     _ nodePtr: UnsafeMutableRawPointer,
-    _ bus: Int,
+    _ bus: UInt32,
     _ bufferSize: UInt32,
     _ formatPtr: UnsafeMutableRawPointer?,
     _ onEvent: AVAStreamEventCallback,
-    _ ctx: UnsafeMutableRawPointer
-) -> UnsafeMutableRawPointer {
+    _ ctx: UnsafeMutableRawPointer,
+    _ releaseContext: AVADropCallback,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
     let bridge = TapBridge(
-        nodePtr: nodePtr,
+        node: Unmanaged<AVAudioNode>.fromOpaque(nodePtr).takeUnretainedValue(),
         bus: bus,
-        bufferSize: bufferSize,
-        formatPtr: formatPtr,
         onEvent: onEvent,
-        ctx: ctx
+        ctx: ctx,
+        releaseContext: releaseContext
     )
+    let format = formatPtr.map { Unmanaged<AVAudioFormat>.fromOpaque($0).takeUnretainedValue() }
+    var error: NSError?
+    guard bridge.install(bufferSize: bufferSize, format: format, error: &error) else {
+        avaReportObjCFailure("AVAudioNode.installTap", error, outError)
+        return nil
+    }
     return Unmanaged.passRetained(bridge).toOpaque()
 }
 
 @_cdecl("ava_node_tap_unsubscribe")
 public func ava_node_tap_unsubscribe(_ handle: UnsafeMutableRawPointer) {
+    let bridge = Unmanaged<TapBridge>.fromOpaque(handle).takeUnretainedValue()
+    bridge.cancel()
     Unmanaged<TapBridge>.fromOpaque(handle).release()
 }

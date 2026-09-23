@@ -4,6 +4,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use avaudio::async_api::TapBufferEvent;
+use avaudio::PCMSamples;
 use doom_fish_utils::spsc::SpscRing;
 
 const TEST_DURATION: Duration = Duration::from_secs(5);
@@ -19,12 +20,14 @@ fn tap_buffer_ring_handles_render_rate_without_hanging() {
     let (producer, consumer) = SpscRing::<TapBufferEvent, RING_CAPACITY>::new();
     let producer_thread = thread::spawn(move || {
         let start = Instant::now();
+        let payload = vec![vec![0.5_f32; FRAMES_PER_EVENT as usize]; 2];
         for tick in 0..TICKS {
             for _ in 0..EVENTS_PER_TICK {
                 let _ = producer.push_overwrite(TapBufferEvent {
                     frame_length: FRAMES_PER_EVENT,
                     channel_count: 2,
                     sample_rate: SAMPLE_RATE,
+                    samples: Some(PCMSamples::Float32(payload.clone())),
                 });
             }
 
@@ -47,6 +50,13 @@ fn tap_buffer_ring_handles_render_rate_without_hanging() {
         while let Some(event) = consumer.pop_async().await {
             assert_eq!(event.channel_count, 2);
             assert!((event.sample_rate - SAMPLE_RATE).abs() < f64::EPSILON);
+            let Some(PCMSamples::Float32(channels)) = &event.samples else {
+                panic!("tap event lost its sample payload");
+            };
+            assert_eq!(channels.len(), 2);
+            assert!(channels
+                .iter()
+                .all(|channel| channel.len() == FRAMES_PER_EVENT as usize));
             received_events += 1;
             received_frames += u64::from(event.frame_length);
         }

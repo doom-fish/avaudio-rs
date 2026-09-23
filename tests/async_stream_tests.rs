@@ -54,44 +54,65 @@ fn muted_speech_activity_stream_subscribe_drop() {
     drop(stream);
 }
 
+fn offline_player_engine(
+    format: &AudioFormat,
+) -> Result<(AudioEngine, AudioPlayerNode), AVAudioError> {
+    let engine = AudioEngine::new()?;
+    let player = AudioPlayerNode::new()?;
+    engine.attach_player_node(&player)?;
+    engine.connect_player_node_to_main_mixer(&player, Some(format))?;
+    engine.enable_manual_rendering_mode(AudioEngineManualRenderingMode::Offline, format, 4096)?;
+    engine.start()?;
+    Ok((engine, player))
+}
+
+fn filled_buffer(format: &AudioFormat, frames: u32, value: f32) -> Result<PCMBuffer, AVAudioError> {
+    let mut buffer = PCMBuffer::new(format, frames)?;
+    buffer.set_frame_length(frames)?;
+    if let Some(PCMChannelDataMut::Deinterleaved(channels)) = buffer.channel_data_mut::<f32>()? {
+        for channel in channels {
+            channel.fill(value);
+        }
+    }
+    Ok(buffer)
+}
+
+fn render_blocks(engine: &AudioEngine, blocks: usize) -> Result<(), AVAudioError> {
+    let mut output = PCMBuffer::new(&engine.manual_rendering_format()?, 4096)?;
+    for _ in 0..blocks {
+        engine.render_offline(4096, &mut output)?;
+    }
+    Ok(())
+}
+
+fn next_tap_event(stream: &TapBufferStream, timeout: Duration) -> Option<TapBufferEvent> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        if let Some(event) = stream.try_next() {
+            return Some(event);
+        }
+        if Instant::now() >= deadline {
+            return None;
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
 #[test]
-fn player_node_completion_stream_basic() {
-    let Some(engine) = make_engine() else {
-        return;
-    };
-    let Ok(player) = AudioPlayerNode::new() else {
-        return;
-    };
-    if engine.attach_player_node(&player).is_err()
-        || engine.connect_player_node_to_main_mixer(&player, None).is_err()
-        || engine.prepare().is_err()
-        || engine.start().is_err()
-    {
-        return;
+fn player_node_completion_stream_basic() -> Result<(), Box<dyn std::error::Error>> {
+    let engine = AudioEngine::new()?;
+    let player = AudioPlayerNode::new()?;
+    engine.attach_player_node(&player)?;
+    engine.connect_player_node_to_main_mixer(&player, None)?;
+    if engine.prepare().and_then(|()| engine.start()).is_err() {
+        return Ok(());
     }
 
-    let Ok(format) = engine.main_mixer_output_format(0) else {
-        engine.stop();
-        return;
-    };
-    let Ok(mut buffer) = PCMBuffer::new(&format, 512) else {
-        engine.stop();
-        return;
-    };
-    if buffer.set_frame_length(512).is_err() {
-        engine.stop();
-        return;
-    }
-
+    let format = engine.main_mixer_output_format(0)?;
+    let buffer = filled_buffer(&format, 512, 0.0)?;
     let stream = PlayerNodeCompletionStream::subscribe(&player, 4);
-    if stream
-        .schedule_buffer(&buffer, AudioPlayerNodeBufferOptions::NONE)
-        .is_err()
-    {
-        engine.stop();
-        return;
-    }
-    player.play().expect("attached player should play");
+    stream.schedule_buffer(&buffer, AudioPlayerNodeBufferOptions::NONE)?;
+    player.play()?;
 
     let event = block(async {
         let deadline = Instant::now() + Duration::from_secs(3);
@@ -112,6 +133,7 @@ fn player_node_completion_stream_basic() {
         event,
         Some(PlayerNodeCompletionEvent::DataPlayedBack)
     ));
+    Ok(())
 }
 
 #[test]
@@ -144,65 +166,80 @@ fn simple_player_event_stream_subscribe_drop() -> Result<(), Box<dyn std::error:
 }
 
 #[test]
-fn tap_buffer_stream_basic() {
-    let Some(engine) = make_engine() else {
-        return;
-    };
-    let Ok(player) = AudioPlayerNode::new() else {
-        return;
-    };
-    if engine.attach_player_node(&player).is_err()
-        || engine.connect_player_node_to_main_mixer(&player, None).is_err()
-        || engine.prepare().is_err()
-        || engine.start().is_err()
-    {
-        return;
-    }
+fn tap_buffer_stream_delivers_copied_samples() -> Result<(), Box<dyn std::error::Error>> {
+    let format = AudioFormat::standard(48_000.0, 2, false)?;
+    let (engine, player) = offline_player_engine(&format)?;
+    let stream = TapBufferStream::subscribe_to_node(&player, 0, 4096, None, 16)?;
+    let buffer = filled_buffer(&format, 48_000, 0.25)?;
+    player.schedule_buffer(&buffer)?;
+    player.play()?;
+    render_blocks(&engine, 8)?;
 
-    let Ok(format) = engine.main_mixer_output_format(0) else {
-        engine.stop();
-        return;
+    let event = next_tap_event(&stream, Duration::from_secs(3)).ok_or("no tap buffer arrived")?;
+    assert_eq!(event.channel_count, 2);
+    assert!((event.sample_rate - 48_000.0).abs() < f64::EPSILON);
+    let Some(PCMSamples::Float32(channels)) = &event.samples else {
+        panic!("tap event carried no float samples: {:?}", event.samples);
     };
-    let Ok(mut buffer) = PCMBuffer::new(&format, 512) else {
-        engine.stop();
-        return;
-    };
-    if buffer.set_frame_length(512).is_err() {
-        engine.stop();
-        return;
-    }
-
-    let Ok(mixer) = engine.main_mixer_node() else {
-        engine.stop();
-        return;
-    };
-    let tap_stream = TapBufferStream::subscribe_to_node(&mixer, 0, 4096, None, 16);
-    if player.schedule_buffer(&buffer).is_err() {
-        drop(tap_stream);
-        engine.stop();
-        return;
-    }
-    player.play().expect("attached player should play");
-
-    let maybe_event = block(async {
-        let deadline = Instant::now() + Duration::from_millis(500);
-        loop {
-            if let Some(event) = tap_stream.try_next() {
-                break Some(event);
-            }
-            if Instant::now() >= deadline {
-                break None;
-            }
-            thread::sleep(Duration::from_millis(10));
-        }
-    });
-
-    if let Some(event) = maybe_event {
-        assert!(event.channel_count > 0);
-        assert!(event.sample_rate > 0.0);
-    }
+    assert_eq!(channels.len(), 2);
+    let frames = usize::try_from(event.frame_length)?;
+    assert!(frames > 0);
+    assert!(channels.iter().all(|channel| channel.len() == frames));
+    assert!(channels
+        .iter()
+        .flatten()
+        .any(|sample| (sample - 0.25).abs() < 1e-6));
 
     player.stop();
-    drop(tap_stream);
+    drop(stream);
     engine.stop();
+    Ok(())
+}
+
+#[test]
+fn second_tap_on_a_bus_fails_without_removing_the_first() -> Result<(), Box<dyn std::error::Error>>
+{
+    let format = AudioFormat::standard(48_000.0, 2, false)?;
+    let (engine, player) = offline_player_engine(&format)?;
+    let first = TapBufferStream::subscribe_to_node(&player, 0, 4096, None, 16)?;
+
+    let second = TapBufferStream::subscribe_to_node(&player, 0, 4096, None, 16);
+    assert!(matches!(second, Err(AVAudioError::CallbackError(_))));
+
+    let buffer = filled_buffer(&format, 48_000, 0.5)?;
+    player.schedule_buffer(&buffer)?;
+    player.play()?;
+    render_blocks(&engine, 8)?;
+    assert!(next_tap_event(&first, Duration::from_secs(3)).is_some());
+
+    drop(first);
+    let replacement = TapBufferStream::subscribe_to_node(&player, 0, 4096, None, 16);
+    assert!(replacement.is_ok());
+
+    player.stop();
+    drop(replacement);
+    engine.stop();
+    Ok(())
+}
+
+#[test]
+fn tap_buffer_stream_rejects_invalid_requests() -> Result<(), Box<dyn std::error::Error>> {
+    let detached = AudioPlayerNode::new()?;
+    assert!(matches!(
+        TapBufferStream::subscribe_to_node(&detached, 0, 4096, None, 16),
+        Err(AVAudioError::CallbackError(_))
+    ));
+
+    let format = AudioFormat::standard(48_000.0, 2, false)?;
+    let (engine, player) = offline_player_engine(&format)?;
+    assert!(matches!(
+        TapBufferStream::subscribe_to_node(&player, 0, 4096, None, 0),
+        Err(AVAudioError::InvalidArgument(_))
+    ));
+    assert!(matches!(
+        TapBufferStream::subscribe_to_node(&player, usize::MAX, 4096, None, 16),
+        Err(AVAudioError::InvalidArgument(_))
+    ));
+    engine.stop();
+    Ok(())
 }

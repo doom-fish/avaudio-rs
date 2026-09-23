@@ -1,3 +1,4 @@
+import AVAudioObjCBridge
 import AVFoundation
 import Foundation
 
@@ -109,22 +110,25 @@ public func av_audio_input_node_input_format_json(
 @_cdecl("av_audio_input_node_install_tap_scaffold")
 public func av_audio_input_node_install_tap_scaffold(
     _ nodePtr: UnsafeMutableRawPointer,
-    _ bus: Int,
+    _ bus: UInt32,
     _ bufferSize: UInt32,
-    _ formatPtr: UnsafeMutableRawPointer?
+    _ formatPtr: UnsafeMutableRawPointer?,
+    _ outErrorMessage: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     let node = Unmanaged<AVAudioInputNode>.fromOpaque(nodePtr).takeUnretainedValue()
-    let audioBus = AVAudioNodeBus(bus)
     let format = formatPtr.map { Unmanaged<AVAudioFormat>.fromOpaque($0).takeUnretainedValue() }
-    node.removeTap(onBus: audioBus)
-    node.installTap(onBus: audioBus, bufferSize: AVAudioFrameCount(bufferSize), format: format) { _, _ in }
+    var error: NSError?
+    guard AVAXNodeInstallTap(node, UInt(bus), bufferSize, format, { _, _ in }, &error) else {
+        avaReportObjCFailure("AVAudioNode.installTap", error, outErrorMessage)
+        return AVA_CALLBACK_ERROR
+    }
     return AVA_OK
 }
 
 @_cdecl("av_audio_input_node_remove_tap")
 public func av_audio_input_node_remove_tap(
     _ nodePtr: UnsafeMutableRawPointer,
-    _ bus: Int
+    _ bus: UInt32
 ) {
     let node = Unmanaged<AVAudioInputNode>.fromOpaque(nodePtr).takeUnretainedValue()
     node.removeTap(onBus: AVAudioNodeBus(bus))
