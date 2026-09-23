@@ -10,7 +10,7 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use doom_fish_utils::panic_safe::catch_user_panic;
+use doom_fish_utils::panic_safe::{catch_user_panic, catch_user_panic_result};
 
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
@@ -161,14 +161,49 @@ unsafe extern "C" fn source_render_trampoline(
         frame_count,
         output_data_ptr: output_data,
     };
-    let mut status = ffi::status::CALLBACK_ERROR;
-    catch_user_panic("source_render_trampoline", || {
-        status = (state.callback)(&mut context);
-        if let Some(is_silence) = is_silence.as_mut() {
-            *is_silence = context.is_silence;
-        }
+    let status = catch_user_panic_result("source_render_trampoline", || {
+        (state.callback)(&mut context)
     });
+    let Some(status) = status else {
+        silence_audio_buffer_list(output_data);
+        if let Some(is_silence) = is_silence.as_mut() {
+            *is_silence = true;
+        }
+        return ffi::status::CALLBACK_ERROR;
+    };
+    if let Some(is_silence) = is_silence.as_mut() {
+        *is_silence = context.is_silence;
+    }
     status
+}
+
+#[repr(C)]
+struct AudioBufferRaw {
+    number_channels: u32,
+    data_byte_size: u32,
+    data: *mut c_void,
+}
+
+#[repr(C)]
+struct AudioBufferListRaw {
+    number_buffers: u32,
+    buffers: [AudioBufferRaw; 1],
+}
+
+unsafe fn silence_audio_buffer_list(list: *mut c_void) {
+    let list = list.cast::<AudioBufferListRaw>();
+    if list.is_null() {
+        return;
+    }
+    let count = (*list).number_buffers as usize;
+    let buffers = ptr::addr_of_mut!((*list).buffers).cast::<AudioBufferRaw>();
+    for index in 0..count {
+        let buffer = buffers.add(index);
+        let data = (*buffer).data;
+        if !data.is_null() {
+            ptr::write_bytes(data.cast::<u8>(), 0, (*buffer).data_byte_size as usize);
+        }
+    }
 }
 
 unsafe extern "C" fn source_render_drop(userdata: *mut c_void) {
@@ -182,6 +217,103 @@ unsafe extern "C" fn source_render_drop(userdata: *mut c_void) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[repr(C)]
+    struct TwoBufferList {
+        number_buffers: u32,
+        buffers: [AudioBufferRaw; 2],
+    }
+
+    fn buffer_for(samples: &mut [f32]) -> AudioBufferRaw {
+        AudioBufferRaw {
+            number_channels: 1,
+            data_byte_size: u32::try_from(core::mem::size_of_val(samples))
+                .expect("test buffer fits in u32"),
+            data: samples.as_mut_ptr().cast(),
+        }
+    }
+
+    fn render(
+        callback: impl FnMut(&mut AudioSourceRenderContext) -> i32 + Send + 'static,
+        left: &mut [f32],
+        right: &mut [f32],
+    ) -> (i32, bool) {
+        let mut list = TwoBufferList {
+            number_buffers: 2,
+            buffers: [buffer_for(left), buffer_for(right)],
+        };
+        let (trampoline, userdata, drop_fn) = source_render_callback_parts(callback);
+        let trampoline = trampoline.expect("source trampoline");
+        let drop_fn = drop_fn.expect("source drop callback");
+        let mut is_silence = false;
+        let status = unsafe {
+            trampoline(
+                userdata,
+                &raw mut is_silence,
+                ptr::null(),
+                64,
+                (&raw mut list).cast(),
+            )
+        };
+        unsafe { drop_fn(userdata) };
+        (status, is_silence)
+    }
+
+    #[test]
+    fn panicking_callback_silences_every_output_buffer() {
+        let mut left = vec![0.5_f32; 64];
+        let mut right = vec![-0.25_f32; 64];
+        let (status, is_silence) = render(|_| panic!("render failure"), &mut left, &mut right);
+        assert_eq!(status, ffi::status::CALLBACK_ERROR);
+        assert!(is_silence);
+        assert!(left
+            .iter()
+            .chain(&right)
+            .all(|sample| sample.to_bits() == 0));
+    }
+
+    #[test]
+    fn returning_callback_keeps_output_and_reports_its_status() {
+        let mut left = vec![0.5_f32; 64];
+        let mut right = vec![-0.25_f32; 64];
+        let (status, is_silence) = render(
+            |context| {
+                context.set_is_silence(true);
+                7
+            },
+            &mut left,
+            &mut right,
+        );
+        assert_eq!(status, 7);
+        assert!(is_silence);
+        assert!(left
+            .iter()
+            .all(|sample| sample.to_bits() == 0.5_f32.to_bits()));
+        assert!(right
+            .iter()
+            .all(|sample| sample.to_bits() == (-0.25_f32).to_bits()));
+    }
+
+    #[test]
+    fn silencing_skips_null_buffers_and_null_lists() {
+        let mut samples = vec![1.0_f32; 16];
+        let mut list = TwoBufferList {
+            number_buffers: 2,
+            buffers: [
+                AudioBufferRaw {
+                    number_channels: 1,
+                    data_byte_size: 64,
+                    data: ptr::null_mut(),
+                },
+                buffer_for(&mut samples),
+            ],
+        };
+        unsafe {
+            silence_audio_buffer_list(ptr::null_mut());
+            silence_audio_buffer_list((&raw mut list).cast());
+        }
+        assert!(samples.iter().all(|sample| sample.to_bits() == 0));
+    }
 
     struct PanicOnDrop(std::sync::Arc<std::sync::atomic::AtomicBool>);
 
