@@ -376,7 +376,8 @@ unsafe extern "C" fn completion_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<CompletionState>()));
+    let state = Box::from_raw(userdata.cast::<CompletionState>());
+    catch_user_panic("completion_drop", || drop(state));
 }
 
 unsafe extern "C" fn typed_completion_trampoline(userdata: *mut c_void, value: i64) {
@@ -392,7 +393,8 @@ unsafe extern "C" fn typed_completion_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<TypedCompletionState>()));
+    let state = Box::from_raw(userdata.cast::<TypedCompletionState>());
+    catch_user_panic("typed_completion_drop", || drop(state));
 }
 
 fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, AVAudioError> {

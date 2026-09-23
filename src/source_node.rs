@@ -175,5 +175,32 @@ unsafe extern "C" fn source_render_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<SourceRenderState>()));
+    let state = Box::from_raw(userdata.cast::<SourceRenderState>());
+    catch_user_panic("source_render_drop", || drop(state));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct PanicOnDrop(std::sync::Arc<std::sync::atomic::AtomicBool>);
+
+    impl Drop for PanicOnDrop {
+        fn drop(&mut self) {
+            self.0.store(true, std::sync::atomic::Ordering::SeqCst);
+            panic!("callback state destructor failure");
+        }
+    }
+
+    #[test]
+    fn panicking_callback_destructor_is_contained() {
+        let dropped = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let guard = PanicOnDrop(std::sync::Arc::clone(&dropped));
+        let (_, userdata, drop_fn) = source_render_callback_parts(move |_| {
+            let _ = &guard;
+            0
+        });
+        unsafe { drop_fn.expect("source drop callback")(userdata) };
+        assert!(dropped.load(std::sync::atomic::Ordering::SeqCst));
+    }
 }

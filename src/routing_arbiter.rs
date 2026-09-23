@@ -126,5 +126,6 @@ unsafe extern "C" fn routing_begin_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<RoutingArbitrationState>()));
+    let state = Box::from_raw(userdata.cast::<RoutingArbitrationState>());
+    catch_user_panic("routing_begin_drop", || drop(state));
 }

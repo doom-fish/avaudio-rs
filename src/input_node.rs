@@ -346,7 +346,8 @@ unsafe extern "C" fn manual_rendering_input_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<ManualRenderingInputState>()));
+    let state = Box::from_raw(userdata.cast::<ManualRenderingInputState>());
+    catch_user_panic("manual_rendering_input_drop", || drop(state));
 }
 
 unsafe extern "C" fn speech_activity_listener_trampoline(userdata: *mut c_void, value: i64) {
@@ -362,7 +363,6 @@ unsafe extern "C" fn speech_activity_listener_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(
-        userdata.cast::<SpeechActivityListenerState>(),
-    ));
+    let state = Box::from_raw(userdata.cast::<SpeechActivityListenerState>());
+    catch_user_panic("speech_activity_listener_drop", || drop(state));
 }

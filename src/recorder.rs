@@ -234,5 +234,6 @@ unsafe extern "C" fn recorder_delegate_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<AudioRecorderDelegateState>()));
+    let state = Box::from_raw(userdata.cast::<AudioRecorderDelegateState>());
+    catch_user_panic("recorder_delegate_drop", || drop(state));
 }

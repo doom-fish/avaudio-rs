@@ -588,5 +588,6 @@ unsafe extern "C" fn sequencer_user_callback_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<SequencerUserCallbackState>()));
+    let state = Box::from_raw(userdata.cast::<SequencerUserCallbackState>());
+    catch_user_panic("sequencer_user_callback_drop", || drop(state));
 }

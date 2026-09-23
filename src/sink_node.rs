@@ -132,5 +132,6 @@ unsafe extern "C" fn sink_render_drop(userdata: *mut c_void) {
     if userdata.is_null() {
         return;
     }
-    drop(Box::from_raw(userdata.cast::<SinkRenderState>()));
+    let state = Box::from_raw(userdata.cast::<SinkRenderState>());
+    catch_user_panic("sink_render_drop", || drop(state));
 }
