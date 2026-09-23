@@ -7,25 +7,33 @@ private struct AudioVoiceProcessingOtherAudioDuckingConfigurationPayload: Codabl
 }
 
 final class InputNodeManualRenderingInputBlockBox {
+    let format: AVAudioFormat
     let callback: AVAInputNodeInputBlockCallback?
     let userData: UnsafeMutableRawPointer?
     let dropUserData: AVADropCallback?
+    private var current: AVAudioPCMBuffer?
 
     init(
+        format: AVAudioFormat,
         callback: AVAInputNodeInputBlockCallback?,
         userData: UnsafeMutableRawPointer?,
         dropUserData: AVADropCallback?
     ) {
+        self.format = format
         self.callback = callback
         self.userData = userData
         self.dropUserData = dropUserData
     }
 
     func provide(frameCount: AVAudioFrameCount) -> UnsafePointer<AudioBufferList>? {
-        guard let bufferPtr = callback?(userData, frameCount) else {
+        let buffer = callback?(userData, frameCount).map {
+            Unmanaged<AVAudioPCMBuffer>.fromOpaque($0).takeRetainedValue()
+        }
+        guard let buffer, buffer.format.isEqual(format) else {
+            current = nil
             return nil
         }
-        let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
+        current = buffer
         return buffer.audioBufferList
     }
 
@@ -132,17 +140,18 @@ public func av_audio_input_node_set_manual_rendering_input_pcm_format(
 ) -> Bool {
     let node = Unmanaged<AVAudioInputNode>.fromOpaque(nodePtr).takeUnretainedValue()
     let format = Unmanaged<AVAudioFormat>.fromOpaque(formatPtr).takeUnretainedValue()
-    guard #available(macOS 10.13, *) else {
-        return false
-    }
-    guard let callback else {
-        return node.setManualRenderingInputPCMFormat(format) { _ in nil }
-    }
     let box = InputNodeManualRenderingInputBlockBox(
+        format: format,
         callback: callback,
         userData: userData,
         dropUserData: dropUserData
     )
+    guard #available(macOS 10.13, *) else {
+        return false
+    }
+    guard callback != nil else {
+        return node.setManualRenderingInputPCMFormat(format) { _ in nil }
+    }
     return node.setManualRenderingInputPCMFormat(format) { frameCount in
         box.provide(frameCount: frameCount)
     }
@@ -219,17 +228,17 @@ public func av_audio_input_node_set_muted_speech_activity_event_listener(
     _ dropUserData: AVADropCallback?
 ) -> Bool {
     let node = Unmanaged<AVAudioInputNode>.fromOpaque(nodePtr).takeUnretainedValue()
-    guard #available(macOS 14.0, *) else {
-        return false
-    }
-    guard let callback else {
-        return node.setMutedSpeechActivityEventListener(nil)
-    }
     let box = InputNodeSpeechActivityListenerBox(
         callback: callback,
         userData: userData,
         dropUserData: dropUserData
     )
+    guard #available(macOS 14.0, *) else {
+        return false
+    }
+    guard callback != nil else {
+        return node.setMutedSpeechActivityEventListener(nil)
+    }
     return node.setMutedSpeechActivityEventListener { event in
         box.notify(event)
     }

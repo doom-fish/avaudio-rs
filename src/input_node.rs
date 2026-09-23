@@ -7,6 +7,8 @@
 )]
 
 use core::ffi::{c_char, c_void};
+use core::fmt;
+use core::mem::ManuallyDrop;
 use core::ptr;
 use std::convert::TryFrom;
 
@@ -22,28 +24,38 @@ use crate::node::AudioNodeHandle;
 use crate::pcm_buffer::PCMBuffer;
 use crate::util::parse_json_and_free;
 
-use doom_fish_utils::panic_safe::catch_user_panic;
+use doom_fish_utils::panic_safe::{catch_user_panic, catch_user_panic_result};
 
 fn bus_to_i32(bus: usize) -> Result<i32, AVAudioError> {
     i32::try_from(bus)
         .map_err(|_| AVAudioError::InvalidArgument("bus index exceeds Int32 range".into()))
 }
 
-/// Borrowed manual-rendering input buffer returned to an `AVAudioIONodeInputBlock`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Manual-rendering input buffer returned to an `AVAudioIONodeInputBlock`.
 pub struct AudioManualRenderingInput {
-    ptr: *mut c_void,
+    buffer: PCMBuffer,
 }
 
-impl AudioManualRenderingInput {
-    /// Creates a borrowed manual-rendering input from a PCM buffer.
-    pub const fn from_buffer(buffer: &PCMBuffer) -> Self {
-        Self { ptr: buffer.ptr }
+impl fmt::Debug for AudioManualRenderingInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AudioManualRenderingInput")
+            .finish_non_exhaustive()
     }
 }
 
-impl From<&PCMBuffer> for AudioManualRenderingInput {
-    fn from(buffer: &PCMBuffer) -> Self {
+impl AudioManualRenderingInput {
+    /// Creates a manual-rendering input that owns `buffer`.
+    pub const fn from_buffer(buffer: PCMBuffer) -> Self {
+        Self { buffer }
+    }
+
+    fn into_raw(self) -> *mut c_void {
+        ManuallyDrop::new(self.buffer).ptr
+    }
+}
+
+impl From<PCMBuffer> for AudioManualRenderingInput {
+    fn from(buffer: PCMBuffer) -> Self {
         Self::from_buffer(buffer)
     }
 }
@@ -169,7 +181,7 @@ impl AudioInputNode {
         F: FnMut(u32) -> Option<AudioManualRenderingInput> + Send + 'static,
     {
         let (callback_fn, userdata, drop_fn) = manual_rendering_input_callback_parts(callback);
-        let ok = unsafe {
+        unsafe {
             ffi::av_audio_input_node_set_manual_rendering_input_pcm_format(
                 self.ptr,
                 format.ptr,
@@ -177,13 +189,7 @@ impl AudioInputNode {
                 userdata,
                 drop_fn,
             )
-        };
-        if !ok {
-            if let Some(drop_fn) = drop_fn {
-                unsafe { drop_fn(userdata) };
-            }
         }
-        ok
     }
 
     /// Returns whether microphone voice processing is bypassed.
@@ -222,20 +228,14 @@ impl AudioInputNode {
         F: FnMut(AudioVoiceProcessingSpeechActivityEvent) + Send + 'static,
     {
         let (callback_fn, userdata, drop_fn) = speech_activity_listener_callback_parts(callback);
-        let ok = unsafe {
+        unsafe {
             ffi::av_audio_input_node_set_muted_speech_activity_event_listener(
                 self.ptr,
                 callback_fn,
                 userdata,
                 drop_fn,
             )
-        };
-        if !ok {
-            if let Some(drop_fn) = drop_fn {
-                unsafe { drop_fn(userdata) };
-            }
         }
-        ok
     }
 
     /// Clears any muted-speech activity listener.
@@ -335,11 +335,11 @@ unsafe extern "C" fn manual_rendering_input_trampoline(
     let Some(state) = userdata.cast::<ManualRenderingInputState>().as_mut() else {
         return ptr::null_mut();
     };
-    let mut out = ptr::null_mut();
-    catch_user_panic("manual_rendering_input_trampoline", || {
-        out = (state.callback)(frame_count).map_or(ptr::null_mut(), |input| input.ptr);
-    });
-    out
+    catch_user_panic_result("manual_rendering_input_trampoline", || {
+        (state.callback)(frame_count)
+    })
+    .flatten()
+    .map_or(ptr::null_mut(), AudioManualRenderingInput::into_raw)
 }
 
 unsafe extern "C" fn manual_rendering_input_drop(userdata: *mut c_void) {
