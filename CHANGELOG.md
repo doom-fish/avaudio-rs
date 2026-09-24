@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A rejected `set_manual_rendering_input_pcm_format_with_callback` or `set_muted_speech_activity_event_listener` call freed the callback state twice, crashing from safe code. Swift now owns the state on every path.
 - The async streams freed their sender right after unsubscribing, while a notification, delegate, completion or tap callback on another thread could still use it. The senders now live in a reference-counted `doom_fish_utils::callback_context::CallbackContext` that each Swift bridge releases from its deinit.
 - Safe code could write samples of a buffer while a player node was reading it. Buffers scheduled on a player node now reject writes until the player releases them.
+- Code outside the crate could implement `AudioNodeHandle`, `AudioBufferHandle`, `AudioUnitHandle` or `AudioUnitMIDIInstrumentHandle` and return any pointer from their hidden accessor, which the bridge then dereferences. These traits are now sealed.
 
 ### Fixed
 
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual-rendering input buffers whose format differs from the registered format are no longer handed to the engine.
 - Scheduling completions no longer mutate an unsynchronized dictionary from the player's completion thread.
 - The `TapBufferStream` docs said tap blocks run on the real-time render thread; AVFoundation calls them on an internal, normal-priority thread.
+- `AudioSession::{sample_rate, output_volume, is_other_audio_playing}` returned the fixed values 48 000 Hz, 1.0 and `false`, because `AVAudioSession` is unavailable on macOS. They now return `AVAudioError::Unsupported`.
 
 ### Changed
 
@@ -31,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `AudioManualRenderingInput::from_buffer` and its `From` impl take a `PCMBuffer` by value; the type is no longer `Copy`, `Clone`, `PartialEq` or `Eq`.
 - **Breaking:** `TapBufferStream::subscribe_to_node` returns `Result` and rejects a zero capacity or a bus index above `u32::MAX` instead of panicking. `TapBufferEvent` has a new `samples` field and is no longer `Copy`.
 - **Breaking:** `PCMBuffer::set_frame_length`, the output buffer of `AudioConverter::{convert_buffer, convert_buffer_status}`, and the target of `AudioEngine::{render_offline, manual_rendering_block_render}` return an error while the buffer is scheduled on a player node.
+- **Breaking:** `AudioNodeHandle`, `AudioBufferHandle`, `AudioUnitHandle` and `AudioUnitMIDIInstrumentHandle` are sealed, so only this crate's types implement them. `AudioMixingHandle` and `AudioIONodeHandle`, which code outside the crate could not name, are sealed as well.
+- **Breaking:** `AudioSession::{sample_rate, output_volume, is_other_audio_playing}` return `Result`.
 - Depends on `doom-fish-utils` `>=0.4.1, <0.5`.
 - `rust-version` is now 1.82 (was 1.76).
 
@@ -39,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PCMBuffer::channel_data::<T>()` and `PCMBuffer::channel_data_mut::<T>()` for `f32`, `i16` and `i32` samples in deinterleaved or interleaved layout, `PCMBuffer::copy_samples()`, `PCMBuffer::is_scheduled()`, and the `PCMSample`, `PCMChannelData`, `PCMChannelDataMut` and `PCMSamples` types.
 - `AudioFormat::with_common_format` for `Float32`, `Float64`, `Int16` and `Int32` PCM formats; `AudioFormat::standard` only creates `Float32` formats.
 - `TapBufferEvent::samples`, a copy of each tap buffer's samples.
+- `AVAudioError::Unsupported`.
 
 ## [0.5.1] - 2026-06-06
 

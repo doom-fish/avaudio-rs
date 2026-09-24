@@ -143,9 +143,9 @@ This table maps Apple symbol groups to their wrappers; it is not a per-method in
 ## AVAudioSession
 | Symbol | Status | Notes |
 |--------|--------|-------|
-| `AVAudioSession.sharedInstance().sampleRate` | stub | macOS compatibility stub returns `48_000.0` |
-| `AVAudioSession.sharedInstance().outputVolume` | stub | macOS compatibility stub returns `1.0` |
-| `AVAudioSession.sharedInstance().isOtherAudioPlaying` | stub | macOS stub returns `false` |
+| `AVAudioSession.sharedInstance().sampleRate` | unsupported | `AudioSession::sample_rate()` returns `AVAudioError::Unsupported`; `AVAudioSession` is unavailable on macOS |
+| `AVAudioSession.sharedInstance().outputVolume` | unsupported | `AudioSession::output_volume()` returns `AVAudioError::Unsupported` |
+| `AVAudioSession.sharedInstance().isOtherAudioPlaying` | unsupported | `AudioSession::is_other_audio_playing()` returns `AVAudioError::Unsupported` |
 | Category / mode / activation APIs | ⏭️ | iOS-only API surface |
 
 ## AVAudioMixing / routing / helper types
