@@ -42,6 +42,8 @@ Enable the `async` feature to use `avaudio::async_api` and executor-agnostic wra
 
 `TapBufferStream` is special-cased to use a lossy `doom-fish-utils::spsc::SpscRing`; each event carries a copy of the tap buffer's samples. `AVFoundation` calls tap blocks on an internal, non-real-time thread. `TapBufferStream::subscribe_to_node` fails if the bus already has a tap instead of replacing it. Every other stream uses `doom-fish-utils::stream::BoundedAsyncStream`. As with the underlying Apple API, only one muted-speech activity listener should be active per input node at a time.
 
+`PlayerNodeCompletionStream::schedule_buffer` and `schedule_file` take the completion callback type; in manual rendering mode use `DataConsumed` or `DataRendered`, because `DataPlayedBack` never fires there. The callbacks installed with `set_delegate` and every `RecorderEventStream` or `SimplePlayerEventStream` on the same recorder or player receive the same events, and dropping a stream leaves the others in place. `AVAudioPlayer` calls its delegate on the main thread, so `AudioSimplePlayer` delegate callbacks and `SimplePlayerEventStream` events only arrive while the main run loop runs.
+
 ```bash
 cargo run --features async --example 26_async_config_change
 cargo run --features async --example 27_async_player_completion

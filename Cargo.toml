@@ -141,6 +141,11 @@ required-features = ["async"]
 name = "27_async_player_completion"
 required-features = ["async"]
 
+[[test]]
+name = "simple_player_delegate_hub"
+harness = false
+required-features = ["async"]
+
 [profile.release]
 debug = "full"
 strip = "none"

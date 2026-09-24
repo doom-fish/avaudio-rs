@@ -7,6 +7,7 @@ mod common;
 use std::fs;
 use std::future::Future;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -210,6 +211,50 @@ fn simple_player_event_stream_subscribe_drop() -> Result<(), Box<dyn std::error:
     assert_eq!(stream.buffered_count(), 0);
     assert!(stream.try_next().is_none());
     drop(stream);
+    Ok(())
+}
+
+#[test]
+fn recorder_event_streams_keep_the_registered_delegate() -> Result<(), Box<dyn std::error::Error>> {
+    let recording_path = artifacts_dir()?.join("async-recorder-delegate.caf");
+    let recorder = AudioRecorder::create(&recording_path, 44_100.0, 1, 16)?;
+    let marker = Arc::new(());
+    let held = Arc::clone(&marker);
+    recorder.set_delegate(AudioRecorderDelegate::new().on_finish_recording(move |_| {
+        let _ = &held;
+    }))?;
+    let first = RecorderEventStream::subscribe(&recorder, 4);
+    let second = RecorderEventStream::subscribe(&recorder, 4);
+    assert_eq!(Arc::strong_count(&marker), 2);
+    drop(first);
+    drop(second);
+    assert_eq!(Arc::strong_count(&marker), 2);
+    recorder.clear_delegate();
+    assert_eq!(Arc::strong_count(&marker), 1);
+    Ok(())
+}
+
+#[test]
+fn simple_player_event_streams_keep_the_registered_delegate(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let audio_path = artifacts_dir()?.join("async-simple-player-delegate.aiff");
+    common::make_test_audio(&audio_path)?;
+    let player = AudioSimplePlayer::create_from_path(&audio_path)?;
+    let marker = Arc::new(());
+    let held = Arc::clone(&marker);
+    player.set_delegate(
+        AudioSimplePlayerDelegate::new().on_finish_playing(move |_| {
+            let _ = &held;
+        }),
+    )?;
+    let first = SimplePlayerEventStream::subscribe(&player, 4);
+    let second = SimplePlayerEventStream::subscribe(&player, 4);
+    assert_eq!(Arc::strong_count(&marker), 2);
+    drop(second);
+    drop(first);
+    assert_eq!(Arc::strong_count(&marker), 2);
+    player.clear_delegate();
+    assert_eq!(Arc::strong_count(&marker), 1);
     Ok(())
 }
 

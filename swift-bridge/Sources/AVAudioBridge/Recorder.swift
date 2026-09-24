@@ -35,9 +35,54 @@ final class AudioRecorderDelegateBox: NSObject, AVAudioRecorderDelegate {
     }
 }
 
+final class AudioRecorderDelegateHub: NSObject, AVAudioRecorderDelegate {
+    private let lock = NSLock()
+    private var handler: AVAudioRecorderDelegate?
+    private var subscribers: [AVAudioRecorderDelegate] = []
+
+    func setHandler(_ newHandler: AVAudioRecorderDelegate?) {
+        lock.lock()
+        let previous = handler
+        handler = newHandler
+        lock.unlock()
+        withExtendedLifetime(previous) {}
+    }
+
+    func add(_ subscriber: AVAudioRecorderDelegate) {
+        lock.lock()
+        subscribers.append(subscriber)
+        lock.unlock()
+    }
+
+    func remove(_ subscriber: AVAudioRecorderDelegate) {
+        lock.lock()
+        let removed = subscribers.firstIndex { $0 === subscriber }.map { subscribers.remove(at: $0) }
+        lock.unlock()
+        withExtendedLifetime(removed) {}
+    }
+
+    private func listeners() -> [AVAudioRecorderDelegate] {
+        lock.lock()
+        defer { lock.unlock() }
+        return (handler.map { [$0] } ?? []) + subscribers
+    }
+
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        for listener in listeners() {
+            listener.audioRecorderDidFinishRecording?(recorder, successfully: flag)
+        }
+    }
+
+    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        for listener in listeners() {
+            listener.audioRecorderEncodeErrorDidOccur?(recorder, error: error)
+        }
+    }
+}
+
 final class AudioRecorderBox {
     var recorder: AVAudioRecorder?
-    var delegateBox: AudioRecorderDelegateBox?
+    let hub = AudioRecorderDelegateHub()
 
     init(url: URL, sampleRate: Double, channels: Int, bitDepth: Int) throws {
         let settings: [String: Any] = [
@@ -49,6 +94,7 @@ final class AudioRecorderBox {
             AVLinearPCMIsFloatKey: bitDepth == 32
         ]
         self.recorder = try AVAudioRecorder(url: url, settings: settings)
+        self.recorder?.delegate = hub
     }
 }
 
@@ -97,16 +143,14 @@ public func av_audio_recorder_set_delegate(
         userData: userData,
         dropUserData: dropUserData
     )
-    box.delegateBox = delegate
-    box.recorder?.delegate = delegate
+    box.hub.setHandler(delegate)
     return AVA_OK
 }
 
 @_cdecl("av_audio_recorder_clear_delegate")
 public func av_audio_recorder_clear_delegate(_ ptr: UnsafeMutableRawPointer) {
     let box = Unmanaged<AudioRecorderBox>.fromOpaque(ptr).takeUnretainedValue()
-    box.recorder?.delegate = nil
-    box.delegateBox = nil
+    box.hub.setHandler(nil)
 }
 
 @_cdecl("av_audio_recorder_record")

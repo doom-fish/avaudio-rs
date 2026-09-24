@@ -157,7 +157,7 @@ final class RecorderStreamBridge: NSObject, AVAudioRecorderDelegate {
     let onEvent: AVAStreamEventCallback
     let ctx: UnsafeMutableRawPointer
     let releaseContext: AVADropCallback
-    weak var recorder: AVAudioRecorder?
+    weak var hub: AudioRecorderDelegateHub?
 
     init(
         recorderBoxPtr: UnsafeMutableRawPointer,
@@ -169,16 +169,12 @@ final class RecorderStreamBridge: NSObject, AVAudioRecorderDelegate {
         self.ctx = ctx
         self.releaseContext = releaseContext
         let box = Unmanaged<AudioRecorderBox>.fromOpaque(recorderBoxPtr).takeUnretainedValue()
-        self.recorder = box.recorder
+        self.hub = box.hub
         super.init()
-        box.delegateBox = nil
-        box.recorder?.delegate = self
+        box.hub.add(self)
     }
 
     deinit {
-        if (recorder?.delegate as AnyObject?) === self {
-            recorder?.delegate = nil
-        }
         releaseContext(ctx)
     }
 
@@ -215,14 +211,15 @@ public func ava_recorder_stream_subscribe(
 
 @_cdecl("ava_recorder_stream_unsubscribe")
 public func ava_recorder_stream_unsubscribe(_ handle: UnsafeMutableRawPointer) {
-    Unmanaged<RecorderStreamBridge>.fromOpaque(handle).release()
+    let bridge = Unmanaged<RecorderStreamBridge>.fromOpaque(handle).takeRetainedValue()
+    bridge.hub?.remove(bridge)
 }
 
 final class SimplePlayerStreamBridge: NSObject, AVAudioPlayerDelegate {
     let onEvent: AVAStreamEventCallback
     let ctx: UnsafeMutableRawPointer
     let releaseContext: AVADropCallback
-    weak var player: AVAudioPlayer?
+    weak var hub: AudioSimplePlayerDelegateHub?
 
     init(
         playerBoxPtr: UnsafeMutableRawPointer,
@@ -234,16 +231,12 @@ final class SimplePlayerStreamBridge: NSObject, AVAudioPlayerDelegate {
         self.ctx = ctx
         self.releaseContext = releaseContext
         let box = Unmanaged<AudioSimplePlayerBox>.fromOpaque(playerBoxPtr).takeUnretainedValue()
-        self.player = box.player
+        self.hub = box.hub
         super.init()
-        box.delegateBox = nil
-        box.player?.delegate = self
+        box.hub.add(self)
     }
 
     deinit {
-        if (player?.delegate as AnyObject?) === self {
-            player?.delegate = nil
-        }
         releaseContext(ctx)
     }
 
@@ -280,7 +273,8 @@ public func ava_simple_player_stream_subscribe(
 
 @_cdecl("ava_simple_player_stream_unsubscribe")
 public func ava_simple_player_stream_unsubscribe(_ handle: UnsafeMutableRawPointer) {
-    Unmanaged<SimplePlayerStreamBridge>.fromOpaque(handle).release()
+    let bridge = Unmanaged<SimplePlayerStreamBridge>.fromOpaque(handle).takeRetainedValue()
+    bridge.hub?.remove(bridge)
 }
 
 final class MutedSpeechActivityStreamBridge: NSObject {

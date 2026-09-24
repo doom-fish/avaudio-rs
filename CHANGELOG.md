@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AudioSession::{sample_rate, output_volume, is_other_audio_playing}` returned the fixed values 48 000 Hz, 1.0 and `false`, because `AVAudioSession` is unavailable on macOS. They now return `AVAudioError::Unsupported`.
 - Swift's `init(rawValue:)` accepts any value for an imported enum, so unknown `AudioConverterPrimeMethod`, `AudioEngineManualRenderingMode`, `AudioVoiceProcessingOtherAudioDuckingLevel`, `AudioPlayerNodeCompletionCallbackType` and `AudioRoutingArbitrationCategory` values (`Other(_)`), EQ band filter types and distance-attenuation models reached AVFAudio unchecked. AVFAudio stored an undefined prime method or manual-rendering mode, or ignored the EQ and attenuation settings while the call reported success. These calls now return `AVAudioError::InvalidArgument`.
 - `PlayerNodeCompletionStream::{schedule_buffer, schedule_file}` always requested `.dataPlayedBack` completions, which never fire in manual rendering mode, so the stream received no events there. The caller now chooses the completion callback type.
+- Subscribing a `RecorderEventStream` or `SimplePlayerEventStream` replaced the delegate installed with `set_delegate` and freed its callbacks, and dropping the stream left the recorder or player with no delegate. Each recorder and player now owns one delegate hub that forwards every event to the `set_delegate` callbacks and to every subscribed stream, and unsubscribing removes only that stream.
 
 ### Changed
 
