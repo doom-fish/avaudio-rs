@@ -86,7 +86,7 @@ impl AudioPlayerNodeCompletionCallbackType {
         }
     }
 
-    const fn as_raw(self) -> i64 {
+    pub(crate) const fn as_raw(self) -> i64 {
         match self {
             Self::DataConsumed => 0,
             Self::DataRendered => 1,

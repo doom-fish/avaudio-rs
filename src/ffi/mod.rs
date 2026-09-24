@@ -1102,11 +1102,13 @@ extern "C" {
         handle: *mut c_void,
         buffer: *mut c_void,
         options: u64,
+        callback_type: i64,
         out_error: *mut *mut c_char,
     ) -> i32;
     pub fn ava_player_node_stream_schedule_file(
         handle: *mut c_void,
         file: *mut c_void,
+        callback_type: i64,
         out_error: *mut *mut c_char,
     ) -> i32;
     pub fn ava_player_node_stream_unsubscribe(handle: *mut c_void);

@@ -86,7 +86,7 @@ final class PlayerNodeStreamBridge: NSObject {
     func completion() -> (AVAudioPlayerNodeCompletionCallbackType) -> Void {
         { [weak self] cbType in
             guard let self else { return }
-            self.onEvent(Int32(cbType.rawValue), nil, self.ctx)
+            self.onEvent(Int32(clamping: cbType.rawValue), nil, self.ctx)
         }
     }
 }
@@ -112,8 +112,13 @@ public func ava_player_node_stream_schedule_buffer(
     _ handle: UnsafeMutableRawPointer,
     _ bufferPtr: UnsafeMutableRawPointer,
     _ options: UInt,
+    _ callbackTypeRaw: Int64,
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    guard let callbackType = avaCompletionCallbackType(callbackTypeRaw) else {
+        outError?.pointee = ffiString("invalid AVAudioPlayerNodeCompletionCallbackType")
+        return AVA_INVALID_ARGUMENT
+    }
     let bridge = Unmanaged<PlayerNodeStreamBridge>.fromOpaque(handle).takeUnretainedValue()
     let buffer = Unmanaged<AVAudioPCMBuffer>.fromOpaque(bufferPtr).takeUnretainedValue()
     return avaScheduleBuffer(
@@ -121,7 +126,7 @@ public func ava_player_node_stream_schedule_buffer(
         buffer,
         nil,
         AVAudioPlayerNodeBufferOptions(rawValue: options),
-        .dataPlayedBack,
+        callbackType,
         bridge.completion(),
         outError
     )
@@ -131,11 +136,16 @@ public func ava_player_node_stream_schedule_buffer(
 public func ava_player_node_stream_schedule_file(
     _ handle: UnsafeMutableRawPointer,
     _ filePtr: UnsafeMutableRawPointer,
+    _ callbackTypeRaw: Int64,
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    guard let callbackType = avaCompletionCallbackType(callbackTypeRaw) else {
+        outError?.pointee = ffiString("invalid AVAudioPlayerNodeCompletionCallbackType")
+        return AVA_INVALID_ARGUMENT
+    }
     let bridge = Unmanaged<PlayerNodeStreamBridge>.fromOpaque(handle).takeUnretainedValue()
     let file = Unmanaged<AVAudioFile>.fromOpaque(filePtr).takeUnretainedValue()
-    return avaScheduleFile(bridge.node, file, nil, .dataPlayedBack, bridge.completion(), outError)
+    return avaScheduleFile(bridge.node, file, nil, callbackType, bridge.completion(), outError)
 }
 
 @_cdecl("ava_player_node_stream_unsubscribe")

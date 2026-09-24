@@ -111,7 +111,11 @@ fn player_node_completion_stream_basic() -> Result<(), Box<dyn std::error::Error
     let format = engine.main_mixer_output_format(0)?;
     let buffer = filled_buffer(&format, 512, 0.0)?;
     let stream = PlayerNodeCompletionStream::subscribe(&player, 4);
-    stream.schedule_buffer(&buffer, AudioPlayerNodeBufferOptions::NONE)?;
+    stream.schedule_buffer(
+        &buffer,
+        AudioPlayerNodeBufferOptions::NONE,
+        AudioPlayerNodeCompletionCallbackType::DataPlayedBack,
+    )?;
     player.play()?;
 
     let event = block(async {
@@ -133,6 +137,50 @@ fn player_node_completion_stream_basic() -> Result<(), Box<dyn std::error::Error
         event,
         Some(PlayerNodeCompletionEvent::DataPlayedBack)
     ));
+    Ok(())
+}
+
+#[test]
+fn player_node_completion_stream_reports_the_requested_callback_type(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let format = AudioFormat::standard(48_000.0, 2, false)?;
+    let (engine, player) = offline_player_engine(&format)?;
+    let buffer = filled_buffer(&format, 512, 0.25)?;
+    let stream = PlayerNodeCompletionStream::subscribe(&player, 4);
+
+    assert!(matches!(
+        stream.schedule_buffer(
+            &buffer,
+            AudioPlayerNodeBufferOptions::NONE,
+            AudioPlayerNodeCompletionCallbackType::Other(9),
+        ),
+        Err(AVAudioError::InvalidArgument(_))
+    ));
+    assert!(!buffer.is_scheduled());
+
+    stream.schedule_buffer(
+        &buffer,
+        AudioPlayerNodeBufferOptions::NONE,
+        AudioPlayerNodeCompletionCallbackType::DataRendered,
+    )?;
+    player.play()?;
+    render_blocks(&engine, 2)?;
+
+    let event = block(async {
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if let Some(event) = stream.try_next() {
+                break Some(event);
+            }
+            if Instant::now() >= deadline {
+                break None;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+    });
+    player.stop();
+    engine.stop();
+    assert_eq!(event, Some(PlayerNodeCompletionEvent::DataRendered));
     Ok(())
 }
 

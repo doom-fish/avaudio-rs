@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let stream = PlayerNodeCompletionStream::subscribe(&player, 4);
     let file = AudioFile::open_for_reading(&audio_path)?;
-    stream.schedule_file(&file)?;
+    stream.schedule_file(&file, AudioPlayerNodeCompletionCallbackType::DataPlayedBack)?;
     player.play()?;
 
     let event = pollster::block_on(async {

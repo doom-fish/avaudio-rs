@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `TapBufferStream` docs said tap blocks run on the real-time render thread; AVFoundation calls them on an internal, normal-priority thread.
 - `AudioSession::{sample_rate, output_volume, is_other_audio_playing}` returned the fixed values 48 000 Hz, 1.0 and `false`, because `AVAudioSession` is unavailable on macOS. They now return `AVAudioError::Unsupported`.
 - Swift's `init(rawValue:)` accepts any value for an imported enum, so unknown `AudioConverterPrimeMethod`, `AudioEngineManualRenderingMode`, `AudioVoiceProcessingOtherAudioDuckingLevel`, `AudioPlayerNodeCompletionCallbackType` and `AudioRoutingArbitrationCategory` values (`Other(_)`), EQ band filter types and distance-attenuation models reached AVFAudio unchecked. AVFAudio stored an undefined prime method or manual-rendering mode, or ignored the EQ and attenuation settings while the call reported success. These calls now return `AVAudioError::InvalidArgument`.
+- `PlayerNodeCompletionStream::{schedule_buffer, schedule_file}` always requested `.dataPlayedBack` completions, which never fire in manual rendering mode, so the stream received no events there. The caller now chooses the completion callback type.
 
 ### Changed
 
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `AudioNodeHandle`, `AudioBufferHandle`, `AudioUnitHandle` and `AudioUnitMIDIInstrumentHandle` are sealed, so only this crate's types implement them. `AudioMixingHandle` and `AudioIONodeHandle`, which code outside the crate could not name, are sealed as well.
 - **Breaking:** `AudioSession::{sample_rate, output_volume, is_other_audio_playing}` return `Result`.
 - **Breaking:** `AudioConverter::set_prime_method` and `AudioEnvironmentNode::set_distance_attenuation` return `Result<(), AVAudioError>`.
+- **Breaking:** `PlayerNodeCompletionStream::{schedule_buffer, schedule_file}` take an `AudioPlayerNodeCompletionCallbackType`.
 - Depends on `doom-fish-utils` `>=0.4.1, <0.5`.
 - `rust-version` is now 1.82 (was 1.76).
 

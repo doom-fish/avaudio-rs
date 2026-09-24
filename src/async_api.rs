@@ -47,7 +47,9 @@ use crate::input_node::AudioInputNode;
 use crate::io_node::AudioVoiceProcessingSpeechActivityEvent;
 use crate::node::AudioNodeHandle;
 use crate::pcm_buffer::{PCMBuffer, PCMSamples};
-use crate::player::{AudioPlayerNode, AudioPlayerNodeBufferOptions};
+use crate::player::{
+    AudioPlayerNode, AudioPlayerNodeBufferOptions, AudioPlayerNodeCompletionCallbackType,
+};
 use crate::recorder::AudioRecorder;
 use crate::simple_player::AudioSimplePlayer;
 
@@ -388,6 +390,7 @@ impl PlayerNodeCompletionStream {
         &self,
         buffer: &PCMBuffer,
         options: AudioPlayerNodeBufferOptions,
+        callback_type: AudioPlayerNodeCompletionCallbackType,
     ) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
@@ -395,6 +398,7 @@ impl PlayerNodeCompletionStream {
                 self.bridge_ptr,
                 buffer.ptr,
                 options.bits(),
+                callback_type.as_raw(),
                 &raw mut err,
             )
         };
@@ -404,10 +408,19 @@ impl PlayerNodeCompletionStream {
         Ok(())
     }
 
-    pub fn schedule_file(&self, file: &AudioFile) -> Result<(), AVAudioError> {
+    pub fn schedule_file(
+        &self,
+        file: &AudioFile,
+        callback_type: AudioPlayerNodeCompletionCallbackType,
+    ) -> Result<(), AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let status = unsafe {
-            ffi::ava_player_node_stream_schedule_file(self.bridge_ptr, file.ptr, &raw mut err)
+            ffi::ava_player_node_stream_schedule_file(
+                self.bridge_ptr,
+                file.ptr,
+                callback_type.as_raw(),
+                &raw mut err,
+            )
         };
         if status != ffi::status::OK {
             return Err(unsafe { from_swift(status, err) });
