@@ -4,6 +4,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+pub fn live_tests_enabled() -> bool {
+    let enabled = std::env::var("AVAUDIO_LIVE_TESTS").as_deref() == Ok("1");
+    if !enabled {
+        eprintln!("skip: set AVAUDIO_LIVE_TESTS=1 to run tests that claim shared audio routes");
+    }
+    enabled
+}
+
 pub fn artifacts_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/test-artifacts");
     fs::create_dir_all(&dir)?;

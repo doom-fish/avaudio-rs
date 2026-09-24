@@ -232,6 +232,9 @@ fn recorder_delegate_and_routing_surfaces() -> Result<(), Box<dyn std::error::Er
     ));
     assert_eq!(Arc::strong_count(&marker), 1);
 
+    if !common::live_tests_enabled() {
+        return Ok(());
+    }
     let (tx, rx) = mpsc::channel();
     AudioRoutingArbiter::shared().begin(
         AudioRoutingArbitrationCategory::Playback,
