@@ -86,8 +86,25 @@ public func av_audio_unit_eq_set_band_params(
         outError?.pointee = ffiString("band index out of range")
         return AVA_INVALID_ARGUMENT
     }
+    let type: AVAudioUnitEQFilterType
+    switch filterType {
+    case 0: type = .parametric
+    case 1: type = .lowPass
+    case 2: type = .highPass
+    case 3: type = .resonantLowPass
+    case 4: type = .resonantHighPass
+    case 5: type = .bandPass
+    case 6: type = .bandStop
+    case 7: type = .lowShelf
+    case 8: type = .highShelf
+    case 9: type = .resonantLowShelf
+    case 10: type = .resonantHighShelf
+    default:
+        outError?.pointee = ffiString("invalid AVAudioUnitEQFilterType \(filterType)")
+        return AVA_INVALID_ARGUMENT
+    }
     let band = node.bands[Int(bandIndex)]
-    band.filterType = AVAudioUnitEQFilterType(rawValue: Int(filterType)) ?? .parametric
+    band.filterType = type
     band.frequency = frequency
     band.bandwidth = bandwidth
     band.gain = gain

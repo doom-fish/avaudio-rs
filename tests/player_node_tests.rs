@@ -67,6 +67,22 @@ fn mismatched_buffer_is_rejected_and_its_callback_released(
     });
     assert!(matches!(result, Err(AVAudioError::PlayerError(_))));
     assert_eq!(Arc::strong_count(&marker), 1);
+
+    let mut stereo_buffer = PCMBuffer::new(&stereo, 64)?;
+    stereo_buffer.set_frame_length(64)?;
+    let held = Arc::clone(&marker);
+    let result = player.schedule_buffer_with_callback_type(
+        &stereo_buffer,
+        None,
+        AudioPlayerNodeBufferOptions::NONE,
+        AudioPlayerNodeCompletionCallbackType::Other(9),
+        move |_| {
+            let _ = &held;
+        },
+    );
+    assert!(matches!(result, Err(AVAudioError::InvalidArgument(_))));
+    assert_eq!(Arc::strong_count(&marker), 1);
+    assert!(!stereo_buffer.is_scheduled());
     Ok(())
 }
 

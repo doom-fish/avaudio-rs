@@ -59,6 +59,15 @@ func avaPlayerCompletionBox(
     )
 }
 
+func avaCompletionCallbackType(_ raw: Int64) -> AVAudioPlayerNodeCompletionCallbackType? {
+    switch raw {
+    case 0: return .dataConsumed
+    case 1: return .dataRendered
+    case 2: return .dataPlayedBack
+    default: return nil
+    }
+}
+
 func avaScheduleBuffer(
     _ node: AVAudioPlayerNode,
     _ buffer: AVAudioPCMBuffer,
@@ -244,7 +253,7 @@ public func av_audio_player_node_schedule_buffer_with_callback_type(
         userData: userData,
         dropUserData: dropUserData
     )
-    guard let callbackType = AVAudioPlayerNodeCompletionCallbackType(rawValue: Int(callbackTypeRaw)) else {
+    guard let callbackType = avaCompletionCallbackType(callbackTypeRaw) else {
         outErrorMessage?.pointee = ffiString("invalid AVAudioPlayerNodeCompletionCallbackType")
         return AVA_INVALID_ARGUMENT
     }
@@ -272,7 +281,7 @@ public func av_audio_player_node_schedule_file_with_callback_type(
         userData: userData,
         dropUserData: dropUserData
     )
-    guard let callbackType = AVAudioPlayerNodeCompletionCallbackType(rawValue: Int(callbackTypeRaw)) else {
+    guard let callbackType = avaCompletionCallbackType(callbackTypeRaw) else {
         outErrorMessage?.pointee = ffiString("invalid AVAudioPlayerNodeCompletionCallbackType")
         return AVA_INVALID_ARGUMENT
     }

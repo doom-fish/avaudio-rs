@@ -95,8 +95,12 @@ public func av_audio_engine_enable_manual_rendering_mode(
 ) -> Int32 {
     let engine = Unmanaged<AVAudioEngine>.fromOpaque(enginePtr).takeUnretainedValue()
     let format = Unmanaged<AVAudioFormat>.fromOpaque(formatPtr).takeUnretainedValue()
-    guard let mode = AVAudioEngineManualRenderingMode(rawValue: Int(modeRaw)) else {
-        outError?.pointee = ffiString("invalid manual rendering mode")
+    let mode: AVAudioEngineManualRenderingMode
+    switch modeRaw {
+    case 0: mode = .offline
+    case 1: mode = .realtime
+    default:
+        outError?.pointee = ffiString("invalid manual rendering mode \(modeRaw)")
         return AVA_INVALID_ARGUMENT
     }
     do {

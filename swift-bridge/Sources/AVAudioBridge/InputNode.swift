@@ -283,8 +283,14 @@ public func av_audio_input_node_set_other_audio_ducking_configuration(
         outError?.pointee = ffiString("voice processing ducking requires macOS 14.0")
         return AVA_INVALID_ARGUMENT
     }
-    guard let duckingLevel = AVAudioVoiceProcessingOtherAudioDuckingConfiguration.Level(rawValue: Int(duckingLevelRaw)) else {
-        outError?.pointee = ffiString("invalid AVAudioVoiceProcessingOtherAudioDuckingConfiguration.Level")
+    let duckingLevel: AVAudioVoiceProcessingOtherAudioDuckingConfiguration.Level
+    switch duckingLevelRaw {
+    case 0: duckingLevel = .default
+    case 10: duckingLevel = .min
+    case 20: duckingLevel = .mid
+    case 30: duckingLevel = .max
+    default:
+        outError?.pointee = ffiString("invalid AVAudioVoiceProcessingOtherAudioDuckingConfiguration.Level \(duckingLevelRaw)")
         return AVA_INVALID_ARGUMENT
     }
     node.voiceProcessingOtherAudioDuckingConfiguration = AVAudioVoiceProcessingOtherAudioDuckingConfiguration(

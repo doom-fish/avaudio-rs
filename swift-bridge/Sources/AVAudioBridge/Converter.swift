@@ -71,10 +71,21 @@ public func av_audio_converter_get_prime_method(_ ptr: UnsafeMutableRawPointer) 
 }
 
 @_cdecl("av_audio_converter_set_prime_method")
-public func av_audio_converter_set_prime_method(_ ptr: UnsafeMutableRawPointer, _ primeMethodRaw: Int64) {
+public func av_audio_converter_set_prime_method(
+    _ ptr: UnsafeMutableRawPointer,
+    _ primeMethodRaw: Int64,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
     let box = Unmanaged<AudioConverterBox>.fromOpaque(ptr).takeUnretainedValue()
-    guard let primeMethod = AVAudioConverterPrimeMethod(rawValue: Int(primeMethodRaw)) else { return }
-    box.converter.primeMethod = primeMethod
+    switch primeMethodRaw {
+    case 0: box.converter.primeMethod = .pre
+    case 1: box.converter.primeMethod = .normal
+    case 2: box.converter.primeMethod = .none
+    default:
+        outError?.pointee = ffiString("invalid AVAudioConverterPrimeMethod \(primeMethodRaw)")
+        return AVA_INVALID_ARGUMENT
+    }
+    return AVA_OK
 }
 
 @_cdecl("av_audio_converter_prime_info_json")

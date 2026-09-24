@@ -94,14 +94,25 @@ public func av_audio_environment_node_set_distance_attenuation(
     _ model: Int32,
     _ referenceDistance: Float,
     _ maximumDistance: Float,
-    _ rolloffFactor: Float
-) {
+    _ rolloffFactor: Float,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    let attenuationModel: AVAudioEnvironmentDistanceAttenuationModel
+    switch model {
+    case 1: attenuationModel = .exponential
+    case 2: attenuationModel = .inverse
+    case 3: attenuationModel = .linear
+    default:
+        outError?.pointee = ffiString("invalid AVAudioEnvironmentDistanceAttenuationModel \(model)")
+        return AVA_INVALID_ARGUMENT
+    }
     let node = Unmanaged<AVAudioEnvironmentNode>.fromOpaque(ptr).takeUnretainedValue()
     let params = node.distanceAttenuationParameters
-    params.distanceAttenuationModel = AVAudioEnvironmentDistanceAttenuationModel(rawValue: Int(model)) ?? .exponential
+    params.distanceAttenuationModel = attenuationModel
     params.referenceDistance = referenceDistance
     params.maximumDistance = maximumDistance
     params.rolloffFactor = rolloffFactor
+    return AVA_OK
 }
 
 @_cdecl("av_audio_environment_node_get_distance_attenuation_json")

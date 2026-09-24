@@ -520,7 +520,8 @@ extern "C" {
         reference_distance: f32,
         maximum_distance: f32,
         rolloff_factor: f32,
-    );
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
     pub fn av_audio_environment_node_get_distance_attenuation_json(
         node: *mut c_void,
         out_error_message: *mut *mut c_char,
@@ -708,7 +709,11 @@ extern "C" {
     ) -> *mut c_char;
     pub fn av_audio_converter_reset(converter: *mut c_void);
     pub fn av_audio_converter_get_prime_method(converter: *mut c_void) -> i64;
-    pub fn av_audio_converter_set_prime_method(converter: *mut c_void, prime_method: i64);
+    pub fn av_audio_converter_set_prime_method(
+        converter: *mut c_void,
+        prime_method: i64,
+        out_error_message: *mut *mut c_char,
+    ) -> i32;
     pub fn av_audio_converter_prime_info_json(
         converter: *mut c_void,
         out_error_message: *mut *mut c_char,

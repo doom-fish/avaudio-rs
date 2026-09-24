@@ -133,16 +133,22 @@ impl AudioEnvironmentNode {
         reference_distance: f32,
         maximum_distance: f32,
         rolloff_factor: f32,
-    ) {
-        unsafe {
+    ) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
             ffi::av_audio_environment_node_set_distance_attenuation(
                 self.ptr,
                 model,
                 reference_distance,
                 maximum_distance,
                 rolloff_factor,
-            );
+                &raw mut err,
+            )
         };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     /// Returns the distance attenuation parameters.

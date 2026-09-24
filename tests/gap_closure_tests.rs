@@ -1,6 +1,7 @@
 mod common;
 
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::time::Duration;
 
 use avaudio::prelude::*;
@@ -15,7 +16,12 @@ fn converter_prime_and_status_surfaces() -> Result<(), Box<dyn std::error::Error
     let mut output = PCMBuffer::new(&output_format, 512)?;
 
     converter.reset();
-    converter.set_prime_method(AudioConverterPrimeMethod::Pre);
+    converter.set_prime_method(AudioConverterPrimeMethod::Pre)?;
+    assert_eq!(converter.prime_method(), AudioConverterPrimeMethod::Pre);
+    assert!(matches!(
+        converter.set_prime_method(AudioConverterPrimeMethod::Other(9)),
+        Err(AVAudioError::InvalidArgument(_))
+    ));
     assert_eq!(converter.prime_method(), AudioConverterPrimeMethod::Pre);
 
     let prime_info = AudioConverterPrimeInfo {
@@ -44,6 +50,11 @@ fn engine_manual_rendering_surfaces() -> Result<(), Box<dyn std::error::Error>> 
     let format = AudioFormat::standard(44_100.0, 1, false)?;
     let mut buffer = PCMBuffer::new(&format, 256)?;
 
+    assert!(matches!(
+        engine.enable_manual_rendering_mode(AudioEngineManualRenderingMode::Other(7), &format, 256),
+        Err(AVAudioError::InvalidArgument(_))
+    ));
+    assert!(!engine.is_in_manual_rendering_mode()?);
     engine.enable_manual_rendering_mode(AudioEngineManualRenderingMode::Realtime, &format, 256)?;
     assert!(engine.is_in_manual_rendering_mode()?);
     assert_eq!(
@@ -146,6 +157,19 @@ fn mixing_and_io_surfaces() -> Result<(), Box<dyn std::error::Error>> {
         input.voice_processing_other_audio_ducking_configuration()?,
         configuration
     );
+    assert!(matches!(
+        input.set_voice_processing_other_audio_ducking_configuration(
+            AudioVoiceProcessingOtherAudioDuckingConfiguration::new(
+                true,
+                AudioVoiceProcessingOtherAudioDuckingLevel::Other(99),
+            )
+        ),
+        Err(AVAudioError::InvalidArgument(_))
+    ));
+    assert_eq!(
+        input.voice_processing_other_audio_ducking_configuration()?,
+        configuration
+    );
     let _ = AudioVoiceProcessingSpeechActivityEvent::Started;
     input.set_voice_processing_enabled(false)?;
     assert!(!output.is_voice_processing_enabled()?);
@@ -191,6 +215,19 @@ fn recorder_delegate_and_routing_surfaces() -> Result<(), Box<dyn std::error::Er
             .on_encode_error(|_| {}),
     )?;
     recorder.clear_delegate();
+
+    let marker = Arc::new(());
+    let held = Arc::clone(&marker);
+    assert!(matches!(
+        AudioRoutingArbiter::shared().begin(
+            AudioRoutingArbitrationCategory::Other(9),
+            move |_, _| {
+                let _ = &held;
+            },
+        ),
+        Err(AVAudioError::InvalidArgument(_))
+    ));
+    assert_eq!(Arc::strong_count(&marker), 1);
 
     let (tx, rx) = mpsc::channel();
     AudioRoutingArbiter::shared().begin(

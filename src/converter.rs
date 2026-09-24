@@ -167,8 +167,18 @@ impl AudioConverter {
     }
 
     /// Sets the converter priming method.
-    pub fn set_prime_method(&self, prime_method: AudioConverterPrimeMethod) {
-        unsafe { ffi::av_audio_converter_set_prime_method(self.ptr, prime_method.as_raw()) };
+    pub fn set_prime_method(
+        &self,
+        prime_method: AudioConverterPrimeMethod,
+    ) -> Result<(), AVAudioError> {
+        let mut err: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            ffi::av_audio_converter_set_prime_method(self.ptr, prime_method.as_raw(), &raw mut err)
+        };
+        if status != ffi::status::OK {
+            return Err(unsafe { from_swift(status, err) });
+        }
+        Ok(())
     }
 
     /// Returns priming-frame requirements.

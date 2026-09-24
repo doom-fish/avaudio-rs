@@ -14,8 +14,13 @@ public func av_audio_routing_arbiter_begin(
     _ dropUserData: AVADropCallback?,
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
-    guard let category = AVAudioRoutingArbiter.Category(rawValue: Int(categoryRaw)) else {
-        outError?.pointee = ffiString("invalid AVAudioRoutingArbiter.Category")
+    let category: AVAudioRoutingArbiter.Category
+    switch categoryRaw {
+    case 0: category = .playback
+    case 1: category = .playAndRecord
+    case 2: category = .playAndRecordVoice
+    default:
+        outError?.pointee = ffiString("invalid AVAudioRoutingArbiter.Category \(categoryRaw)")
         return AVA_INVALID_ARGUMENT
     }
     AVAudioRoutingArbiter.shared.begin(category: category) { defaultDeviceChanged, error in
