@@ -66,3 +66,16 @@ fn graph_misuse_returns_errors_instead_of_aborting() -> Result<(), Box<dyn std::
     assert!(!engine.is_running()?);
     Ok(())
 }
+
+#[test]
+fn main_mixer_output_format_rejects_missing_buses() -> Result<(), Box<dyn std::error::Error>> {
+    let engine = AudioEngine::new()?;
+    assert!(engine.main_mixer_output_format(0)?.sample_rate()? > 0.0);
+    for bus in [1, 7, usize::MAX] {
+        assert!(matches!(
+            engine.main_mixer_output_format(bus),
+            Err(AVAudioError::FormatError(message)) if message.contains("out of range")
+        ));
+    }
+    Ok(())
+}

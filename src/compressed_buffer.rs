@@ -59,6 +59,15 @@ impl AudioCompressedBuffer {
         packet_capacity: AudioPacketCount,
         maximum_packet_size: usize,
     ) -> Result<Self, AVAudioError> {
+        let fits = u64::try_from(maximum_packet_size)
+            .ok()
+            .and_then(|size| size.checked_mul(u64::from(packet_capacity)))
+            .is_some_and(|bytes| u32::try_from(bytes).is_ok());
+        if maximum_packet_size == 0 || !fits {
+            return Err(AVAudioError::InvalidArgument(
+                "maximum_packet_size must be non-zero and packet_capacity * maximum_packet_size must fit the UInt32 byte capacity".into(),
+            ));
+        }
         let mut err: *mut c_char = ptr::null_mut();
         let ptr = unsafe {
             ffi::av_audio_compressed_buffer_create(

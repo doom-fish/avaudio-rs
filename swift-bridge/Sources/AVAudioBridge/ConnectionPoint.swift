@@ -18,7 +18,11 @@ public func av_audio_connection_point_create(
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
     let node = Unmanaged<AVAudioNode>.fromOpaque(nodePtr).takeUnretainedValue()
-    let point = AVAudioConnectionPoint(node: node, bus: AVAudioNodeBus(bus))
+    guard let nodeBus = AVAudioNodeBus(exactly: bus) else {
+        outError?.pointee = ffiString("bus \(bus) exceeds the AVAudioNodeBus range")
+        return nil
+    }
+    let point = AVAudioConnectionPoint(node: node, bus: nodeBus)
     return Unmanaged.passRetained(point).toOpaque()
 }
 

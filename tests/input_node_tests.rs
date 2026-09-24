@@ -15,6 +15,23 @@ fn input_node_formats() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
+fn input_node_rejects_buses_it_does_not_have() -> Result<(), Box<dyn std::error::Error>> {
+    let engine = AudioEngine::new()?;
+    let input = engine.input_node()?;
+    for bus in [1, 5, usize::MAX] {
+        assert!(matches!(
+            input.output_format(bus),
+            Err(AVAudioError::OperationFailed(message)) if message.contains("out of range")
+        ));
+        assert!(matches!(
+            input.input_format(bus),
+            Err(AVAudioError::OperationFailed(message)) if message.contains("out of range")
+        ));
+    }
+    Ok(())
+}
+
+#[test]
 fn input_node_tap_scaffold() -> Result<(), Box<dyn std::error::Error>> {
     let engine = AudioEngine::new()?;
     let input = engine.input_node()?;

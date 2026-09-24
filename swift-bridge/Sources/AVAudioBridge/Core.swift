@@ -67,6 +67,19 @@ func ffiString(_ string: String) -> UnsafeMutablePointer<CChar>? {
     string.withCString { strdup($0) }
 }
 
+func avaBus(
+    _ bus: UInt,
+    count: Int,
+    _ direction: String,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> AVAudioNodeBus? {
+    guard let index = AVAudioNodeBus(exactly: bus), index < count else {
+        outError?.pointee = ffiString("\(direction) bus \(bus) is out of range; the node has \(count) \(direction) buses")
+        return nil
+    }
+    return index
+}
+
 enum BridgeError: LocalizedError {
     case message(String)
 

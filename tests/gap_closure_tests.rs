@@ -128,6 +128,9 @@ fn mixing_and_io_surfaces() -> Result<(), Box<dyn std::error::Error>> {
     assert!((destination.volume()? - 0.4).abs() < 0.001);
     assert!((destination.pan()? + 0.2).abs() < 0.001);
     assert_eq!(destination.connection_point()?.bus()?, 0);
+    assert!(player
+        .destination_for_mixer(&main_mixer, usize::MAX)?
+        .is_none());
 
     let format = AudioFormat::standard(44_100.0, 1, false)?;
     let input = engine.input_node()?;

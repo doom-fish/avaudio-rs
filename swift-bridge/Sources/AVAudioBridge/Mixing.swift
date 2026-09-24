@@ -68,12 +68,13 @@ public func av_audio_mixing_set_volume(
 public func av_audio_mixing_destination_for_mixer(
     _ ptr: UnsafeMutableRawPointer,
     _ mixerPtr: UnsafeMutableRawPointer,
-    _ bus: Int,
+    _ bus: UInt,
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
     guard let mixing = avaRequireMixing(ptr, outError) else { return nil }
     let mixer = Unmanaged<AVAudioNode>.fromOpaque(mixerPtr).takeUnretainedValue()
-    guard let destination = mixing.destination(forMixer: mixer, bus: AVAudioNodeBus(bus)) else {
+    guard let nodeBus = AVAudioNodeBus(exactly: bus),
+          let destination = mixing.destination(forMixer: mixer, bus: nodeBus) else {
         return nil
     }
     return Unmanaged.passRetained(destination).toOpaque()

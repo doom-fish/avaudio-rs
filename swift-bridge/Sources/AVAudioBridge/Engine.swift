@@ -183,9 +183,12 @@ public func av_audio_engine_configuration_change_notification_name(
 @_cdecl("av_audio_engine_copy_main_mixer_output_format")
 public func av_audio_engine_copy_main_mixer_output_format(
     _ enginePtr: UnsafeMutableRawPointer,
-    _ bus: Int
+    _ bus: UInt,
+    _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
     let engine = Unmanaged<AVAudioEngine>.fromOpaque(enginePtr).takeUnretainedValue()
-    let format = engine.mainMixerNode.outputFormat(forBus: AVAudioNodeBus(bus))
+    let mixer = engine.mainMixerNode
+    guard let nodeBus = avaBus(bus, count: mixer.numberOfOutputs, "output", outError) else { return nil }
+    let format = mixer.outputFormat(forBus: nodeBus)
     return Unmanaged.passRetained(format).toOpaque()
 }

@@ -13,14 +13,18 @@ struct AudioCompressedBufferInfoPayload: Codable {
 public func av_audio_compressed_buffer_create(
     _ formatPtr: UnsafeMutableRawPointer,
     _ packetCapacity: UInt32,
-    _ maximumPacketSize: Int,
+    _ maximumPacketSize: UInt,
     _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
+    guard let packetSize = Int(exactly: maximumPacketSize) else {
+        outError?.pointee = ffiString("maximum packet size \(maximumPacketSize) exceeds the Int range")
+        return nil
+    }
     let format = Unmanaged<AVAudioFormat>.fromOpaque(formatPtr).takeUnretainedValue()
     let buffer = AVAudioCompressedBuffer(
         format: format,
         packetCapacity: AVAudioPacketCount(packetCapacity),
-        maximumPacketSize: maximumPacketSize
+        maximumPacketSize: packetSize
     )
     return Unmanaged.passRetained(buffer).toOpaque()
 }

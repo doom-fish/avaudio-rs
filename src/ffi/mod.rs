@@ -228,6 +228,7 @@ extern "C" {
     pub fn av_audio_engine_copy_main_mixer_output_format(
         engine: *mut c_void,
         bus: usize,
+        out_error_message: *mut *mut c_char,
     ) -> *mut c_void;
     pub fn av_audio_engine_attach_node(
         engine: *mut c_void,
@@ -426,12 +427,12 @@ extern "C" {
     pub fn av_audio_input_node_release(node: *mut c_void);
     pub fn av_audio_input_node_output_format_json(
         node: *mut c_void,
-        bus: i32,
+        bus: usize,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
     pub fn av_audio_input_node_input_format_json(
         node: *mut c_void,
-        bus: i32,
+        bus: usize,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
     pub fn av_audio_input_node_install_tap_scaffold(
@@ -475,7 +476,7 @@ extern "C" {
     pub fn av_audio_output_node_release(node: *mut c_void);
     pub fn av_audio_output_node_output_format_json(
         node: *mut c_void,
-        bus: i32,
+        bus: usize,
         out_error_message: *mut *mut c_char,
     ) -> *mut c_char;
     pub fn av_audio_io_node_get_presentation_latency(

@@ -29,6 +29,10 @@ fn foundation_wrapper_smoke() -> Result<(), Box<dyn std::error::Error>> {
     let point = AudioConnectionPoint::new(&player, 0)?;
     assert_eq!(point.bus()?, 0);
     assert!(point.points_to(&player)?);
+    assert!(matches!(
+        AudioConnectionPoint::new(&player, usize::MAX),
+        Err(AVAudioError::OperationFailed(_))
+    ));
 
     let artifacts = artifacts_dir()?;
     let input_path = artifacts.join("foundation-wrapper-input.aiff");
@@ -39,6 +43,13 @@ fn foundation_wrapper_smoke() -> Result<(), Box<dyn std::error::Error>> {
     let format = file.file_format()?;
     let buffer = AudioCompressedBuffer::new(&format, 8, 4096)?;
     assert_eq!(buffer.packet_capacity()?, 8);
+    assert_eq!(buffer.info()?.byte_capacity, 8 * 4096);
+    for (capacity, size) in [(8, 0), (65_536, 65_537), (2, 1 << 31), (8, usize::MAX)] {
+        assert!(matches!(
+            AudioCompressedBuffer::new(&format, capacity, size),
+            Err(AVAudioError::InvalidArgument(_))
+        ));
+    }
     buffer.set_packet_count(0)?;
     buffer.set_byte_length(0)?;
     assert!(buffer.maximum_packet_size()? > 0);

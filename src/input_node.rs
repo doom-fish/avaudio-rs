@@ -26,11 +26,6 @@ use crate::util::parse_json_and_free;
 
 use doom_fish_utils::panic_safe::{catch_user_panic, catch_user_panic_result};
 
-fn bus_to_i32(bus: usize) -> Result<i32, AVAudioError> {
-    i32::try_from(bus)
-        .map_err(|_| AVAudioError::InvalidArgument("bus index exceeds Int32 range".into()))
-}
-
 fn bus_to_u32(bus: usize) -> Result<u32, AVAudioError> {
     u32::try_from(bus)
         .map_err(|_| AVAudioError::InvalidArgument("bus index exceeds UInt32 range".into()))
@@ -112,7 +107,6 @@ impl AudioMixingHandle for AudioInputNode {
 impl AudioInputNode {
     /// Returns the output format for a bus.
     pub fn output_format(&self, bus: usize) -> Result<AudioFormatInfo, AVAudioError> {
-        let bus = bus_to_i32(bus)?;
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
             unsafe { ffi::av_audio_input_node_output_format_json(self.ptr, bus, &raw mut err) };
@@ -124,7 +118,6 @@ impl AudioInputNode {
 
     /// Returns the input format for a bus.
     pub fn input_format(&self, bus: usize) -> Result<AudioFormatInfo, AVAudioError> {
-        let bus = bus_to_i32(bus)?;
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr =
             unsafe { ffi::av_audio_input_node_input_format_json(self.ptr, bus, &raw mut err) };

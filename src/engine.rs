@@ -398,11 +398,12 @@ impl AudioEngine {
     }
 
     pub fn main_mixer_output_format(&self, bus: usize) -> Result<AudioFormat, AVAudioError> {
-        let ptr = unsafe { ffi::av_audio_engine_copy_main_mixer_output_format(self.ptr, bus) };
+        let mut err: *mut c_char = ptr::null_mut();
+        let ptr = unsafe {
+            ffi::av_audio_engine_copy_main_mixer_output_format(self.ptr, bus, &raw mut err)
+        };
         if ptr.is_null() {
-            return Err(AVAudioError::FormatError(
-                "audio engine did not provide a main mixer output format".into(),
-            ));
+            return Err(unsafe { from_swift(ffi::status::FORMAT_ERROR, err) });
         }
         Ok(AudioFormat { ptr })
     }
