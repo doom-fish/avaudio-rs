@@ -17,7 +17,7 @@ public func av_audio_buffer_info_json(
     let audioBuffers = UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList)
     let payload = AudioBufferInfoPayload(
         format: avaEncodeFormatInfo(buffer.format),
-        bufferCount: UInt32(audioBuffers.count),
+        bufferCount: UInt32(clamping: audioBuffers.count),
         bytesPerBuffer: audioBuffers.map(\.mDataByteSize),
         channelCounts: audioBuffers.map(\.mNumberChannels)
     )

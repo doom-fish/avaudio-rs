@@ -1,6 +1,6 @@
 # API Coverage
 
-This table maps Apple symbol groups to their wrappers; it is not a per-method inventory. Known method-level gaps include `AVAudioEngine.detach(_:)`, the bus-specific `connect(_:to:fromBus:toBus:format:)`, `connect(_:toConnectionPoints:fromBus:format:)`, `disconnectNodeInput(_:)` / `disconnectNodeOutput(_:)`, `AVAudioPlayerNode.scheduleSegment(...)`, `lastRenderTime` / `playerTime(forNodeTime:)`, and the macOS 27 `…error:` variants of `connect` and `installTap`. Rows marked "stub" return fixed values on macOS.
+This table maps Apple symbol groups to their wrappers; it is not a per-method inventory. Known method-level gaps include `AVAudioEngine.detach(_:)`, the bus-specific `connect(_:to:fromBus:toBus:format:)`, `connect(_:toConnectionPoints:fromBus:format:)`, `disconnectNodeInput(_:)` / `disconnectNodeOutput(_:)`, `AVAudioPlayerNode.scheduleSegment(...)`, `lastRenderTime` / `playerTime(forNodeTime:)`, and the macOS 27 `…error:` variants of `connect` and `installTap`. Rows marked "unsupported" return `AVAudioError::Unsupported`.
 
 ## AVAudioEngine
 | Symbol | Status | Notes |

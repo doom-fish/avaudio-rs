@@ -128,7 +128,7 @@ func avaEncodeJSON<T: Encodable>(_ value: T) throws -> String {
 
 func avaEncodeFormatInfo(_ format: AVAudioFormat) -> AudioFormatInfoPayload {
     AudioFormatInfoPayload(
-        commonFormat: Int32(format.commonFormat.rawValue),
+        commonFormat: Int32(clamping: format.commonFormat.rawValue),
         sampleRate: format.sampleRate,
         channelCount: format.channelCount,
         isInterleaved: format.isInterleaved

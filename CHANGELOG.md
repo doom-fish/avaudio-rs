@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AudioInputNode::{input_format, output_format}` and `AudioOutputNode::output_format` passed a 32-bit bus index to a Swift `Int` parameter, which the C calling convention does not require to be extended. Bus indices now cross the FFI as `usize`/`UInt` wherever Rust passes a `usize`.
 - `AudioEngine::main_mixer_output_format` with a bus the main mixer does not have raised an Objective-C `NSRangeException` and aborted the process, and the input and output node format getters returned a made-up format for such buses. They now return `FormatError` (main mixer) or `OperationFailed` (IO nodes). `AudioConnectionPoint::new` trapped for a bus above `isize::MAX` and now returns an error.
 - `AudioCompressedBuffer::new` with a zero `maximum_packet_size` raised an Objective-C exception and aborted the process. A `packet_capacity * maximum_packet_size` above `u32::MAX` wrapped the buffer's byte capacity, and a size above `isize::MAX` produced a buffer with a 4 GB capacity and no storage. These now return `InvalidArgument`.
+- Framework values the Swift bridge narrows for Rust (enum raw values, EQ band and buffer counts, the player loop count, the speech-activity and player-completion kinds, converter statuses) used trapping `Int32(_:)`/`UInt32(_:)` conversions and now clamp.
 
 ### Changed
 

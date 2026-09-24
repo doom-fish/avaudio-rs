@@ -40,7 +40,7 @@ public func av_audio_unit_eq_set_global_gain(_ ptr: UnsafeMutableRawPointer, _ g
 
 @_cdecl("av_audio_unit_eq_get_band_count")
 public func av_audio_unit_eq_get_band_count(_ ptr: UnsafeMutableRawPointer) -> Int32 {
-    Int32(Unmanaged<AVAudioUnitEQ>.fromOpaque(ptr).takeUnretainedValue().bands.count)
+    Int32(clamping: Unmanaged<AVAudioUnitEQ>.fromOpaque(ptr).takeUnretainedValue().bands.count)
 }
 
 @_cdecl("av_audio_unit_eq_get_band_info_json")
@@ -56,7 +56,7 @@ public func av_audio_unit_eq_get_band_info_json(
     }
     let band = node.bands[Int(bandIndex)]
     let payload = EQBandInfoPayload(
-        filterType: Int32(band.filterType.rawValue),
+        filterType: Int32(clamping: band.filterType.rawValue),
         frequency: band.frequency,
         bandwidth: band.bandwidth,
         gain: band.gain,

@@ -132,7 +132,7 @@ public func av_audio_converter_convert_buffer(
         outputBufferPtr,
         outError
     )
-    return rawStatus >= 0 ? AVA_OK : Int32(rawStatus)
+    return rawStatus >= 0 ? AVA_OK : Int32(clamping: rawStatus)
 }
 
 @_cdecl("av_audio_converter_convert_buffer_with_status")

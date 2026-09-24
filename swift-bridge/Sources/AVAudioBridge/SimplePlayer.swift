@@ -213,7 +213,7 @@ public func av_audio_simple_player_is_playing(_ ptr: UnsafeMutableRawPointer) ->
 
 @_cdecl("av_audio_simple_player_get_number_of_loops")
 public func av_audio_simple_player_get_number_of_loops(_ ptr: UnsafeMutableRawPointer) -> Int32 {
-    Int32(Unmanaged<AudioSimplePlayerBox>.fromOpaque(ptr).takeUnretainedValue().player?.numberOfLoops ?? 0)
+    Int32(clamping: Unmanaged<AudioSimplePlayerBox>.fromOpaque(ptr).takeUnretainedValue().player?.numberOfLoops ?? 0)
 }
 
 @_cdecl("av_audio_simple_player_set_number_of_loops")

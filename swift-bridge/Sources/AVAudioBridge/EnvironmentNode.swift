@@ -123,7 +123,7 @@ public func av_audio_environment_node_get_distance_attenuation_json(
     let node = Unmanaged<AVAudioEnvironmentNode>.fromOpaque(ptr).takeUnretainedValue()
     let params = node.distanceAttenuationParameters
     let payload = DistanceAttenuationPayload(
-        model: Int32(params.distanceAttenuationModel.rawValue),
+        model: Int32(clamping: params.distanceAttenuationModel.rawValue),
         referenceDistance: params.referenceDistance,
         maximumDistance: params.maximumDistance,
         rolloffFactor: params.rolloffFactor

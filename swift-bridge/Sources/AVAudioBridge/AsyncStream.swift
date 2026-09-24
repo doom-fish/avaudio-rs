@@ -305,7 +305,7 @@ final class MutedSpeechActivityStreamBridge: NSObject {
             self.stateLock.lock()
             defer { self.stateLock.unlock() }
             guard self.active else { return }
-            self.onEvent(Int32(event.rawValue), nil, self.ctx)
+            self.onEvent(Int32(clamping: event.rawValue), nil, self.ctx)
         }
         if !ok {
             outError?.pointee = ffiString("failed to install muted speech activity listener")
