@@ -24,7 +24,7 @@ fn sequencer_transport_surface() -> Result<(), Box<dyn std::error::Error>> {
     assert!(beats >= 0.0);
 
     let info_keys = AudioSequencer::info_dictionary_keys()?;
-    assert!(!info_keys.title.is_empty());
+    assert_ne!(info_keys.title, "");
     assert!(sequencer.user_info()?.keys().all(|key| !key.is_empty()));
 
     sequencer.set_user_callback(|event| {
@@ -106,12 +106,13 @@ fn sequencer_track_event_surface() -> Result<(), Box<dyn std::error::Error>> {
         2
     );
     copied_track.cut_events_in_range(BeatRange::new(0.0, 8.0))?;
-    assert!(copied_track
-        .events_in_range(BeatRange::new(0.0, 8.0))?
-        .is_empty());
+    assert_eq!(
+        copied_track.events_in_range(BeatRange::new(0.0, 8.0))?,
+        [] as [avaudio::TrackEvent; 0]
+    );
 
     let data = sequencer.data_with_smpte_resolution(480)?;
-    assert!(!data.is_empty());
+    assert_ne!(data, [] as [u8; 0]);
 
     let artifact_dir = std::path::PathBuf::from("target/test-artifacts");
     std::fs::create_dir_all(&artifact_dir)?;

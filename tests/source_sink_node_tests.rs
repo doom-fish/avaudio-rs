@@ -76,7 +76,7 @@ fn render_source(panics: bool) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
 #[test]
 fn source_node_output_reaches_the_mixer() -> Result<(), Box<dyn std::error::Error>> {
     let samples = render_source(false)?;
-    assert!(!samples.is_empty());
+    assert_ne!(samples, [] as [f32; 0]);
     assert!(samples.iter().all(|sample| (sample - 0.5).abs() < 1e-6));
     Ok(())
 }
@@ -84,7 +84,7 @@ fn source_node_output_reaches_the_mixer() -> Result<(), Box<dyn std::error::Erro
 #[test]
 fn panicking_source_node_renders_silence() -> Result<(), Box<dyn std::error::Error>> {
     let samples = render_source(true)?;
-    assert!(!samples.is_empty());
+    assert_ne!(samples, [] as [f32; 0]);
     assert!(samples.iter().all(|sample| sample.to_bits() == 0));
     Ok(())
 }

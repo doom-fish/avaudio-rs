@@ -3,11 +3,11 @@ use avaudio::prelude::*;
 #[test]
 fn settings_and_type_surfaces() -> Result<(), Box<dyn std::error::Error>> {
     let constants = AudioSettingsConstants::current()?;
-    assert!(!constants.audio_file_type_key.is_empty());
-    assert!(!constants.bit_rate_strategy_constant.is_empty());
-    assert!(!constants.bit_rate_strategy_long_term_average.is_empty());
-    assert!(!constants.bit_rate_strategy_variable.is_empty());
-    assert!(!constants.bit_rate_strategy_variable_constrained.is_empty());
+    assert_ne!(constants.audio_file_type_key, "");
+    assert_ne!(constants.bit_rate_strategy_constant, "");
+    assert_ne!(constants.bit_rate_strategy_long_term_average, "");
+    assert_ne!(constants.bit_rate_strategy_variable, "");
+    assert_ne!(constants.bit_rate_strategy_variable_constrained, "");
 
     assert_eq!(AudioQuality::High as i64, 0x60);
     assert_eq!(AudioDynamicRangeControlConfiguration::Movie as i64, 3);
