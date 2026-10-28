@@ -15,8 +15,6 @@ use std::cell::RefCell;
 use std::ffi::CString;
 use std::rc::Rc;
 
-use serde::{Deserialize, Serialize};
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::music_event::{event_from_json_ptr, event_to_json_cstring, MusicEvent};
@@ -32,12 +30,16 @@ pub const MUSIC_TIME_STAMP_END_OF_TRACK: f64 = f64::MAX;
 pub const MUSIC_TRACK_LOOP_COUNT_FOREVER: i64 = -1;
 
 /// Mirrors `AVBeatRange`.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BeatRange {
     pub start: f64,
     pub length: f64,
 }
+
+crate::util::impl_from_json!(BeatRange {
+    start: f64 = "start",
+    length: f64 = "length",
+});
 
 impl BeatRange {
     pub const fn new(start: f64, length: f64) -> Self {
@@ -46,8 +48,7 @@ impl BeatRange {
 }
 
 /// Snapshot of `AVMusicTrack` state.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MusicTrackInfo {
     pub destination_midi_endpoint: u64,
     pub loop_range: BeatRange,
@@ -62,6 +63,21 @@ pub struct MusicTrackInfo {
     pub uses_automated_parameters: bool,
     pub has_destination_audio_unit: bool,
 }
+
+crate::util::impl_from_json!(MusicTrackInfo {
+    destination_midi_endpoint: u64 = "destinationMidiEndpoint",
+    loop_range: BeatRange = "loopRange",
+    looping_enabled: bool = "loopingEnabled",
+    number_of_loops: i64 = "numberOfLoops",
+    offset_time: f64 = "offsetTime",
+    muted: bool = "muted",
+    soloed: bool = "soloed",
+    length_in_beats: f64 = "lengthInBeats",
+    length_in_seconds: f64 = "lengthInSeconds",
+    time_resolution: usize = "timeResolution",
+    uses_automated_parameters: bool = "usesAutomatedParameters",
+    has_destination_audio_unit: bool = "hasDestinationAudioUnit",
+});
 
 /// A concrete event at a specific beat within a track.
 #[derive(Debug, Clone, PartialEq)]

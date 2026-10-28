@@ -9,18 +9,20 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct AudioVoiceProcessingOtherAudioDuckingConfigurationPayload {
     enable_advanced_ducking: bool,
     ducking_level_raw: i64,
 }
+
+crate::util::impl_from_json!(AudioVoiceProcessingOtherAudioDuckingConfigurationPayload {
+    enable_advanced_ducking: bool = "enableAdvancedDucking",
+    ducking_level_raw: i64 = "duckingLevelRaw",
+});
 
 #[doc(hidden)]
 pub trait AudioIONodeHandle: crate::sealed::Sealed {
@@ -215,7 +217,7 @@ mod tests {
 
     #[test]
     fn ducking_configuration_payload_deserializes_bridge_shape() {
-        let payload: AudioVoiceProcessingOtherAudioDuckingConfigurationPayload = serde_json::from_str(
+        let payload: AudioVoiceProcessingOtherAudioDuckingConfigurationPayload = crate::util::from_json(
             r#"{"enableAdvancedDucking":true,"duckingLevelRaw":20}"#,
         )
         .unwrap();

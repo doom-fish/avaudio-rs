@@ -56,6 +56,8 @@ mod unit_time_pitch;
 mod unit_varispeed;
 mod util;
 
+pub use doom_fish_utils::json::JsonValue;
+
 pub use application::{AudioApplication, AudioApplicationRecordPermission};
 pub use audio_file::{AudioFile, AudioFileInfo};
 pub use buffer::{AudioBufferHandle, AudioBufferInfo};
@@ -156,6 +158,8 @@ pub use unit_varispeed::AudioUnitVarispeed;
 
 /// Common imports.
 pub mod prelude {
+    pub use doom_fish_utils::json::JsonValue;
+
     pub use crate::application::{AudioApplication, AudioApplicationRecordPermission};
     pub use crate::audio_file::{AudioFile, AudioFileInfo};
     pub use crate::buffer::{AudioBufferHandle, AudioBufferInfo};

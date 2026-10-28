@@ -5,14 +5,11 @@
     clippy::enum_variant_names,
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
-    clippy::must_use_candidate,
-    clippy::unsafe_derive_deserialize
+    clippy::must_use_candidate
 )]
 
 use core::ffi::c_char;
 use core::ptr;
-
-use serde::Deserialize;
 
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
@@ -22,8 +19,7 @@ use crate::util::parse_json_and_free;
 pub type AudioBitRateStrategy = String;
 
 /// Bridged `AVAudioSettings.h` NSString constants.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioSettingsConstants {
     pub audio_file_type_key: String,
     pub bit_rate_strategy_constant: AudioBitRateStrategy,
@@ -31,6 +27,14 @@ pub struct AudioSettingsConstants {
     pub bit_rate_strategy_variable: AudioBitRateStrategy,
     pub bit_rate_strategy_variable_constrained: AudioBitRateStrategy,
 }
+
+crate::util::impl_from_json!(AudioSettingsConstants {
+    audio_file_type_key: String = "audioFileTypeKey",
+    bit_rate_strategy_constant: AudioBitRateStrategy = "bitRateStrategyConstant",
+    bit_rate_strategy_long_term_average: AudioBitRateStrategy = "bitRateStrategyLongTermAverage",
+    bit_rate_strategy_variable: AudioBitRateStrategy = "bitRateStrategyVariable",
+    bit_rate_strategy_variable_constrained: AudioBitRateStrategy = "bitRateStrategyVariableConstrained",
+});
 
 impl AudioSettingsConstants {
     /// Returns the current AVFoundation constant values.

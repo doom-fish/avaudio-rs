@@ -9,8 +9,6 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::types::AudioChannelCount;
@@ -24,12 +22,16 @@ pub const AUDIO_CHANNEL_LAYOUT_TAG_MONO: AudioChannelLayoutTag = (100_u32 << 16)
 /// Mirrors `kAudioChannelLayoutTag_Stereo`.
 pub const AUDIO_CHANNEL_LAYOUT_TAG_STEREO: AudioChannelLayoutTag = (101_u32 << 16) | 2;
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioChannelLayoutInfo {
     pub layout_tag: AudioChannelLayoutTag,
     pub channel_count: AudioChannelCount,
 }
+
+crate::util::impl_from_json!(AudioChannelLayoutInfo {
+    layout_tag: AudioChannelLayoutTag = "layoutTag",
+    channel_count: AudioChannelCount = "channelCount",
+});
 
 /// Wraps an `AVAudioChannelLayout`.
 pub struct AudioChannelLayout {

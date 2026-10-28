@@ -11,21 +11,24 @@ use core::ptr;
 use std::ffi::CString;
 use std::path::Path;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::format::{AudioFormat, AudioFormatInfo};
 use crate::pcm_buffer::PCMBuffer;
 use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AudioFileInfo {
     pub length_frames: i64,
     pub processing_format: AudioFormatInfo,
     pub file_format: AudioFormatInfo,
 }
+
+crate::util::impl_from_json!(AudioFileInfo {
+    length_frames: i64 = "lengthFrames",
+    processing_format: AudioFormatInfo = "processingFormat",
+    file_format: AudioFormatInfo = "fileFormat",
+});
 
 pub struct AudioFile {
     pub(crate) ptr: *mut c_void,

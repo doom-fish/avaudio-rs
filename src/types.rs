@@ -2,8 +2,6 @@
 
 #![allow(clippy::module_name_repetitions, clippy::must_use_candidate)]
 
-use serde::{Deserialize, Serialize};
-
 /// Mirrors `AVAudioChannelCount`.
 pub type AudioChannelCount = u32;
 /// Mirrors `AVAudioFrameCount`.
@@ -16,12 +14,18 @@ pub type AudioPacketCount = u32;
 pub type AudioNodeBus = usize;
 
 /// Mirrors `AVAudio3DVector`.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Audio3DVector {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
+
+crate::util::impl_from_json!(Audio3DVector {
+    x: f32 = "x",
+    y: f32 = "y",
+    z: f32 = "z",
+});
 
 impl Audio3DVector {
     /// Creates a new 3D vector.
@@ -31,11 +35,16 @@ impl Audio3DVector {
 }
 
 /// Mirrors `AVAudio3DVectorOrientation`.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Audio3DVectorOrientation {
     pub forward: Audio3DVector,
     pub up: Audio3DVector,
 }
+
+crate::util::impl_from_json!(Audio3DVectorOrientation {
+    forward: Audio3DVector = "forward",
+    up: Audio3DVector = "up",
+});
 
 impl Audio3DVectorOrientation {
     /// Creates a new vector orientation.

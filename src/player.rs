@@ -2,11 +2,6 @@
 
 use core::ffi::{c_char, c_void};
 use core::ptr;
-use std::ffi::CStr;
-
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-
 use std::ops::{BitOr, BitOrAssign};
 
 use crate::error::{from_swift, AVAudioError};
@@ -15,14 +10,18 @@ use crate::file::{AudioFile, PCMBuffer};
 use crate::mixing::AudioMixingHandle;
 use crate::node::AudioNodeHandle;
 use crate::time::AudioTime;
+use crate::util::parse_json_and_free;
 
 use doom_fish_utils::panic_safe::catch_user_panic;
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioPlayerNodeInfo {
     pub is_playing: bool,
 }
+
+crate::util::impl_from_json!(AudioPlayerNodeInfo {
+    is_playing: bool = "isPlaying",
+});
 
 struct CompletionState {
     callback: Box<dyn FnMut() + Send + 'static>,
@@ -394,14 +393,4 @@ unsafe extern "C" fn typed_completion_drop(userdata: *mut c_void) {
     }
     let state = Box::from_raw(userdata.cast::<TypedCompletionState>());
     catch_user_panic("typed_completion_drop", || drop(state));
-}
-
-fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, AVAudioError> {
-    let json = unsafe { CStr::from_ptr(json_ptr) }
-        .to_string_lossy()
-        .into_owned();
-    unsafe { ffi::ava_string_free(json_ptr) };
-    serde_json::from_str::<T>(&json).map_err(|error| {
-        AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}"))
-    })
 }

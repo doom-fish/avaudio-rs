@@ -9,8 +9,6 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::buffer::AudioBufferHandle;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
@@ -18,8 +16,7 @@ use crate::format::AudioFormat;
 use crate::types::AudioPacketCount;
 use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioCompressedBufferInfo {
     pub packet_capacity: AudioPacketCount,
     pub packet_count: AudioPacketCount,
@@ -27,6 +24,14 @@ pub struct AudioCompressedBufferInfo {
     pub byte_capacity: u32,
     pub byte_length: u32,
 }
+
+crate::util::impl_from_json!(AudioCompressedBufferInfo {
+    packet_capacity: AudioPacketCount = "packetCapacity",
+    packet_count: AudioPacketCount = "packetCount",
+    maximum_packet_size: usize = "maximumPacketSize",
+    byte_capacity: u32 = "byteCapacity",
+    byte_length: u32 = "byteLength",
+});
 
 /// Wraps an `AVAudioCompressedBuffer`.
 pub struct AudioCompressedBuffer {

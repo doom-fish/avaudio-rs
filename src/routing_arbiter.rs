@@ -10,8 +10,6 @@ use core::ffi::{c_char, c_void};
 use core::ptr;
 use std::ffi::CStr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 
@@ -52,12 +50,15 @@ struct RoutingArbitrationState {
     callback: Box<dyn FnMut(bool, Option<String>) + Send + 'static>,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct RoutingArbitrationResult {
     default_device_changed: bool,
     error: Option<String>,
 }
+
+crate::util::impl_from_json!(RoutingArbitrationResult {
+    default_device_changed: bool = "defaultDeviceChanged",
+    error: Option<String> = "error",
+});
 
 /// Access to the process-wide routing-arbitration singleton.
 pub struct AudioRoutingArbiter;
@@ -115,7 +116,7 @@ unsafe extern "C" fn routing_begin_result_trampoline(userdata: *mut c_void, mess
         }
         let json = CStr::from_ptr(message).to_string_lossy().into_owned();
         unsafe { ffi::ava_string_free(message) };
-        match serde_json::from_str::<RoutingArbitrationResult>(&json) {
+        match crate::util::from_json::<RoutingArbitrationResult>(&json) {
             Ok(result) => (state.callback)(result.default_device_changed, result.error),
             Err(_) => (state.callback)(false, Some(json)),
         }

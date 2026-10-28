@@ -6,20 +6,21 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS 12 or later.
 
 ```toml
 [dependencies]
-avaudio = "0.6"
+avaudio = "0.7"
 ```
 
 Enable the `async` feature for the future and stream wrappers:
 
 ```toml
 [dependencies]
-avaudio = { version = "0.6", features = ["async"] }
+avaudio = { version = "0.7", features = ["async"] }
 ```
 
 ## Features
 
 `avaudio` now covers the core pieces needed to build and inspect `AVFoundation` audio graphs from Rust:
 
+- `JsonValue` represents sequence metadata and AU preset dictionaries. The crate uses the dependency-free JSON feature from `doom-fish-utils`.
 - `AVAudioEngine` graph creation, preparation, start/stop/reset, and generic node attach/connect helpers.
 - `AVAudioPlayerNode`, `AVAudioMixerNode`, `AVAudioInputNode`, `AVAudioOutputNode`, `AVAudioEnvironmentNode`, `AVAudioSourceNode`, and `AVAudioSinkNode` wrappers.
 - `AVAudioPCMBuffer` sample access: `PCMBuffer::channel_data::<T>()` and `channel_data_mut::<T>()` for `f32`, `i16`, and `i32` samples (deinterleaved or interleaved), plus owned copies through `copy_samples()`. Buffers scheduled on a player node reject writes until the player releases them.

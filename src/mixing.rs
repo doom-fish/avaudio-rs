@@ -9,8 +9,6 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::connection_point::AudioConnectionPoint;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
@@ -21,12 +19,18 @@ use crate::types::{
 };
 use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Audio3DVectorPayload {
     x: f32,
     y: f32,
     z: f32,
 }
+
+crate::util::impl_from_json!(Audio3DVectorPayload {
+    x: f32 = "x",
+    y: f32 = "y",
+    z: f32 = "z",
+});
 
 #[doc(hidden)]
 pub trait AudioMixingHandle: crate::sealed::Sealed {

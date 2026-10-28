@@ -11,8 +11,6 @@ use core::ptr;
 use std::ffi::CString;
 use std::path::Path;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::node::AudioNodeHandle;
@@ -29,12 +27,15 @@ fn path_to_cstring(path: impl AsRef<Path>) -> Result<CString, AVAudioError> {
 }
 
 /// Common state shared by bypass-capable audio-unit nodes.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioUnitInfo {
     /// Whether the underlying effect/time-effect is bypassed.
     pub bypass: bool,
 }
+
+crate::util::impl_from_json!(AudioUnitInfo {
+    bypass: bool = "bypass",
+});
 
 /// Implemented by AVAudioUnit-backed nodes that can be attached to an audio graph.
 pub trait AudioUnitHandle: AudioNodeHandle {

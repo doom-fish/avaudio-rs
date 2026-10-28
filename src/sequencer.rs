@@ -14,14 +14,12 @@ use std::ffi::CString;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
 use std::path::Path;
 
-use serde::Deserialize;
-use serde_json::Value;
-
 use crate::engine::AudioEngine;
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::music_track::MusicTrack;
 use crate::util::parse_json_and_free;
+use crate::JsonValue;
 
 use doom_fish_utils::panic_safe::catch_user_panic;
 
@@ -97,8 +95,7 @@ impl BitAndAssign for MusicSequenceLoadOptions {
 }
 
 /// Summary info reported by the sequencer bridge.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AudioSequencerInfo {
     /// Number of non-tempo tracks in the sequence.
     pub track_count: usize,
@@ -114,9 +111,17 @@ pub struct AudioSequencerInfo {
     pub has_tempo_track: bool,
 }
 
+crate::util::impl_from_json!(AudioSequencerInfo {
+    track_count: usize = "trackCount",
+    current_position_in_seconds: f64 = "currentPositionInSeconds",
+    current_position_in_beats: f64 = "currentPositionInBeats",
+    is_playing: bool = "isPlaying",
+    rate: f32 = "rate",
+    has_tempo_track: bool = "hasTempoTrack",
+});
+
 /// The bridged `AVAudioSequencerInfoDictionaryKey` string constants.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioSequencerInfoDictionaryKeys {
     pub album: String,
     pub approximate_duration_in_seconds: String,
@@ -141,6 +146,31 @@ pub struct AudioSequencerInfoDictionaryKeys {
     pub track_number: String,
     pub year: String,
 }
+
+crate::util::impl_from_json!(AudioSequencerInfoDictionaryKeys {
+    album: String = "album",
+    approximate_duration_in_seconds: String = "approximateDurationInSeconds",
+    artist: String = "artist",
+    channel_layout: String = "channelLayout",
+    comments: String = "comments",
+    composer: String = "composer",
+    copyright: String = "copyright",
+    encoding_application: String = "encodingApplication",
+    genre: String = "genre",
+    isrc: String = "isrc",
+    key_signature: String = "keySignature",
+    lyricist: String = "lyricist",
+    nominal_bit_rate: String = "nominalBitRate",
+    recorded_date: String = "recordedDate",
+    source_bit_depth: String = "sourceBitDepth",
+    source_encoder: String = "sourceEncoder",
+    sub_title: String = "subTitle",
+    tempo: String = "tempo",
+    time_signature: String = "timeSignature",
+    title: String = "title",
+    track_number: String = "trackNumber",
+    year: String = "year",
+});
 
 /// Payload delivered for `AVMusicUserEvent` callbacks.
 #[derive(Debug, Clone, PartialEq)]
@@ -217,7 +247,7 @@ impl AudioSequencer {
     }
 
     /// Returns the sequence metadata dictionary as JSON-like values.
-    pub fn user_info(&self) -> Result<BTreeMap<String, Value>, AVAudioError> {
+    pub fn user_info(&self) -> Result<BTreeMap<String, JsonValue>, AVAudioError> {
         let mut err: *mut c_char = ptr::null_mut();
         let json_ptr = unsafe { ffi::av_audio_sequencer_user_info_json(self.ptr, &raw mut err) };
         if json_ptr.is_null() {

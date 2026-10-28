@@ -9,15 +9,12 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::types::AudioFramePosition;
 use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AudioTimeInfo {
     pub host_time_valid: bool,
     pub host_time: u64,
@@ -25,6 +22,14 @@ pub struct AudioTimeInfo {
     pub sample_time: AudioFramePosition,
     pub sample_rate: f64,
 }
+
+crate::util::impl_from_json!(AudioTimeInfo {
+    host_time_valid: bool = "hostTimeValid",
+    host_time: u64 = "hostTime",
+    sample_time_valid: bool = "sampleTimeValid",
+    sample_time: AudioFramePosition = "sampleTime",
+    sample_rate: f64 = "sampleRate",
+});
 
 /// Wraps an `AVAudioTime`.
 pub struct AudioTime {

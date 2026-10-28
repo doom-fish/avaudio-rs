@@ -11,16 +11,13 @@
 use core::ffi::c_char;
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::unit::AudioComponentDescription;
 use crate::util::parse_json_and_free;
 
 /// Metadata about an installed audio-unit component.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioUnitComponentInfo {
     /// Component display name.
     pub name: String,
@@ -41,28 +38,42 @@ pub struct AudioUnitComponentInfo {
     /// Whether the component is safe to load in a sandbox.
     pub sandbox_safe: bool,
     /// Whether the component accepts MIDI input.
-    #[serde(rename = "hasMIDIInput")]
     pub has_midi_input: bool,
     /// Whether the component emits MIDI output.
-    #[serde(rename = "hasMIDIOutput")]
     pub has_midi_output: bool,
     /// User-assigned component tags.
     pub user_tag_names: Vec<String>,
     /// All user and system component tags.
     pub all_tag_names: Vec<String>,
     /// Optional icon URL.
-    #[serde(rename = "iconURL")]
     pub icon_url: Option<String>,
     /// Whether the component has passed AU validation.
-    #[serde(rename = "passesAUVal")]
     pub passes_auval: bool,
     /// Whether the component exposes a custom view.
     pub has_custom_view: bool,
 }
 
+crate::util::impl_from_json!(AudioUnitComponentInfo {
+    name: String = "name",
+    component_description: AudioComponentDescription = "componentDescription",
+    type_name: String = "typeName",
+    localized_type_name: String = "localizedTypeName",
+    manufacturer_name: String = "manufacturerName",
+    version: u64 = "version",
+    version_string: String = "versionString",
+    available_architectures: Vec<i64> = "availableArchitectures",
+    sandbox_safe: bool = "sandboxSafe",
+    has_midi_input: bool = "hasMIDIInput",
+    has_midi_output: bool = "hasMIDIOutput",
+    user_tag_names: Vec<String> = "userTagNames",
+    all_tag_names: Vec<String> = "allTagNames",
+    icon_url: Option<String> = "iconURL",
+    passes_auval: bool = "passesAUVal",
+    has_custom_view: bool = "hasCustomView",
+});
+
 /// Standard strings surfaced by `AVAudioUnitComponent.h`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioUnitComponentConstants {
     /// `AVAudioUnitComponentTagsDidChangeNotification`.
     pub tags_did_change_notification: String,
@@ -75,7 +86,6 @@ pub struct AudioUnitComponentConstants {
     /// `AVAudioUnitTypeGenerator`.
     pub type_generator: String,
     /// `AVAudioUnitTypeMIDIProcessor`.
-    #[serde(rename = "typeMIDIProcessor")]
     pub type_midi_processor: String,
     /// `AVAudioUnitTypeMixer`.
     pub type_mixer: String,
@@ -90,6 +100,21 @@ pub struct AudioUnitComponentConstants {
     /// `AVAudioUnitTypePanner`.
     pub type_panner: String,
 }
+
+crate::util::impl_from_json!(AudioUnitComponentConstants {
+    tags_did_change_notification: String = "tagsDidChangeNotification",
+    manufacturer_name_apple: String = "manufacturerNameApple",
+    type_effect: String = "typeEffect",
+    type_format_converter: String = "typeFormatConverter",
+    type_generator: String = "typeGenerator",
+    type_midi_processor: String = "typeMIDIProcessor",
+    type_mixer: String = "typeMixer",
+    type_music_device: String = "typeMusicDevice",
+    type_music_effect: String = "typeMusicEffect",
+    type_offline_effect: String = "typeOfflineEffect",
+    type_output: String = "typeOutput",
+    type_panner: String = "typePanner",
+});
 
 /// Access to the shared `AVAudioUnitComponentManager` singleton.
 pub struct AudioUnitComponentManager;

@@ -2,22 +2,24 @@
 
 use core::ffi::{c_char, c_void};
 use core::ptr;
-use std::ffi::CStr;
-
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
+use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AudioFormatInfo {
     pub common_format: i32,
     pub sample_rate: f64,
     pub channel_count: u32,
     pub is_interleaved: bool,
 }
+
+crate::util::impl_from_json!(AudioFormatInfo {
+    common_format: i32 = "commonFormat",
+    sample_rate: f64 = "sampleRate",
+    channel_count: u32 = "channelCount",
+    is_interleaved: bool = "isInterleaved",
+});
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -135,16 +137,6 @@ impl AudioFormat {
     }
 }
 
-fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, AVAudioError> {
-    let json = unsafe { CStr::from_ptr(json_ptr) }
-        .to_string_lossy()
-        .into_owned();
-    unsafe { ffi::ava_string_free(json_ptr) };
-    serde_json::from_str::<T>(&json).map_err(|error| {
-        AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}"))
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,7 +156,7 @@ mod tests {
 
     #[test]
     fn audio_format_info_deserializes_bridge_shape() {
-        let info: AudioFormatInfo = serde_json::from_str(
+        let info: AudioFormatInfo = crate::util::from_json(
             r#"{"commonFormat":3,"sampleRate":48000.0,"channelCount":2,"isInterleaved":true}"#,
         )
         .unwrap();

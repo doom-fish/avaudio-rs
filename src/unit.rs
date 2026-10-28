@@ -12,8 +12,6 @@ use core::ptr;
 use std::ffi::CString;
 use std::path::Path;
 
-use serde::{Deserialize, Serialize};
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::node::AudioNodeHandle;
@@ -30,8 +28,7 @@ fn path_to_cstring(path: impl AsRef<Path>) -> Result<CString, AVAudioError> {
 }
 
 /// Mirrors `AudioComponentDescription`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AudioComponentDescription {
     /// The audio-unit family, e.g. `kAudioUnitType_Effect`.
     pub component_type: u32,
@@ -44,6 +41,14 @@ pub struct AudioComponentDescription {
     /// Flags mask.
     pub component_flags_mask: u32,
 }
+
+crate::util::impl_from_json!(AudioComponentDescription {
+    component_type: u32 = "componentType",
+    component_subtype: u32 = "componentSubtype",
+    component_manufacturer: u32 = "componentManufacturer",
+    component_flags: u32 = "componentFlags",
+    component_flags_mask: u32 = "componentFlagsMask",
+});
 
 impl AudioComponentDescription {
     /// Creates a new component description.
@@ -102,8 +107,7 @@ impl BitOrAssign for AudioComponentInstantiationOptions {
 }
 
 /// Metadata surfaced by `AVAudioUnit`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioUnitMetadata {
     /// `audioComponentDescription`.
     pub component_description: AudioComponentDescription,
@@ -118,6 +122,15 @@ pub struct AudioUnitMetadata {
     /// Whether `AUAudioUnit` is available.
     pub has_au_audio_unit: bool,
 }
+
+crate::util::impl_from_json!(AudioUnitMetadata {
+    component_description: AudioComponentDescription = "componentDescription",
+    name: String = "name",
+    manufacturer_name: String = "manufacturerName",
+    version: u64 = "version",
+    audio_unit_raw: u64 = "audioUnitRaw",
+    has_au_audio_unit: bool = "hasAuAudioUnit",
+});
 
 /// Opaque handle to the underlying `AUAudioUnit` object.
 pub struct AUAudioUnitHandle {

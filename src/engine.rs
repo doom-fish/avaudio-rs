@@ -4,9 +4,6 @@ use core::ffi::{c_char, c_void};
 use core::ptr;
 use std::ffi::CStr;
 
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::format::AudioFormat;
@@ -15,21 +12,31 @@ use crate::mixer::AudioMixerNode;
 use crate::node::AudioNodeHandle;
 use crate::pcm_buffer::PCMBuffer;
 use crate::player::AudioPlayerNode;
+use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioEngineInfo {
     pub is_running: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+crate::util::impl_from_json!(AudioEngineInfo {
+    is_running: bool = "isRunning",
+});
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioEngineManualRenderingInfo {
     pub is_in_manual_rendering_mode: bool,
     pub manual_rendering_mode_raw: i64,
     pub manual_rendering_maximum_frame_count: u32,
     pub manual_rendering_sample_time: i64,
 }
+
+crate::util::impl_from_json!(AudioEngineManualRenderingInfo {
+    is_in_manual_rendering_mode: bool = "isInManualRenderingMode",
+    manual_rendering_mode_raw: i64 = "manualRenderingModeRaw",
+    manual_rendering_maximum_frame_count: u32 = "manualRenderingMaximumFrameCount",
+    manual_rendering_sample_time: i64 = "manualRenderingSampleTime",
+});
 
 /// Mirrors `AVAudioEngineManualRenderingError`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -407,14 +414,4 @@ impl AudioEngine {
         }
         Ok(AudioFormat { ptr })
     }
-}
-
-fn parse_json_and_free<T: DeserializeOwned>(json_ptr: *mut c_char) -> Result<T, AVAudioError> {
-    let json = unsafe { CStr::from_ptr(json_ptr) }
-        .to_string_lossy()
-        .into_owned();
-    unsafe { ffi::ava_string_free(json_ptr) };
-    serde_json::from_str::<T>(&json).map_err(|error| {
-        AVAudioError::OperationFailed(format!("failed to decode bridge JSON: {error}"))
-    })
 }

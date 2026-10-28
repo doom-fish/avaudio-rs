@@ -11,14 +11,14 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 use std::ffi::CString;
-
-use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::node::AudioNodeHandle;
 use crate::unit::AudioComponentDescription;
 use crate::unit_effect::AudioUnitHandle;
+use crate::util::ToJson;
 
 /// CoreMIDI UMP protocol IDs accepted by `send_midi_event_list`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,14 +31,18 @@ pub enum MidiProtocol {
 }
 
 /// One packet in a CoreMIDI `MIDIEventList`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MidiEventPacket {
     /// Host-time timestamp for the packet. `0` means “now”.
     pub time_stamp: u64,
     /// Raw UMP words for the packet.
     pub words: Vec<u32>,
 }
+
+crate::util::impl_from_json!(MidiEventPacket {
+    time_stamp: u64 = "timeStamp",
+    words: Vec<u32> = "words",
+});
 
 /// Shared MIDI-event sending helpers for `AVAudioUnitMIDIInstrument` subclasses.
 pub trait AudioUnitMIDIInstrumentHandle: AudioUnitHandle {
@@ -179,9 +183,22 @@ pub trait AudioUnitMIDIInstrumentHandle: AudioUnitHandle {
         protocol: MidiProtocol,
         packets: &[MidiEventPacket],
     ) -> Result<(), AVAudioError> {
-        let json = serde_json::to_string(packets).map_err(|error| {
-            AVAudioError::InvalidArgument(format!("failed to encode MIDI event list: {error}"))
-        })?;
+        let mut json = String::from("[");
+        for (index, packet) in packets.iter().enumerate() {
+            if index != 0 {
+                json.push(',');
+            }
+            write!(
+                json,
+                "{{\"timeStamp\":{},\"words\":{}}}",
+                packet.time_stamp,
+                packet.words.to_json(),
+            )
+            .map_err(|error| {
+                AVAudioError::InvalidArgument(format!("failed to encode MIDI event list: {error}"))
+            })?;
+        }
+        json.push(']');
         let json = CString::new(json).map_err(|error| {
             AVAudioError::InvalidArgument(format!(
                 "MIDI event list JSON contains NUL byte: {error}"

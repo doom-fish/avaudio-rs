@@ -9,8 +9,6 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::file::PCMBuffer;
@@ -18,8 +16,7 @@ use crate::format::AudioFormatInfo;
 use crate::util::parse_json_and_free;
 
 /// Structural information from an `AVAudioBuffer`'s `AudioBufferList`.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AudioBufferInfo {
     /// Buffer format metadata.
     pub format: AudioFormatInfo,
@@ -30,6 +27,13 @@ pub struct AudioBufferInfo {
     /// Channel count for each `AudioBuffer` entry.
     pub channel_counts: Vec<u32>,
 }
+
+crate::util::impl_from_json!(AudioBufferInfo {
+    format: AudioFormatInfo = "format",
+    buffer_count: u32 = "bufferCount",
+    bytes_per_buffer: Vec<u32> = "bytesPerBuffer",
+    channel_counts: Vec<u32> = "channelCounts",
+});
 
 /// Implemented by types backed by `AVAudioBuffer`.
 pub trait AudioBufferHandle: crate::sealed::Sealed {

@@ -16,10 +16,9 @@
 use core::ffi::c_char;
 use std::ffi::{CStr, CString};
 
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
 use crate::error::AVAudioError;
+use crate::util::ToJson;
+use crate::JsonValue;
 
 fn missing_field(field: &str, kind: &str) -> AVAudioError {
     AVAudioError::InvalidArgument(format!(
@@ -384,11 +383,11 @@ impl ParameterEvent {
 pub struct AUPresetEvent {
     pub scope: u32,
     pub element: u32,
-    pub preset_dictionary: Value,
+    pub preset_dictionary: JsonValue,
 }
 
 impl AUPresetEvent {
-    pub fn new(scope: u32, element: u32, preset_dictionary: Value) -> Self {
+    pub fn new(scope: u32, element: u32, preset_dictionary: JsonValue) -> Self {
         Self {
             scope,
             element,
@@ -427,8 +426,7 @@ pub enum MusicEvent {
     ExtendedTempo(ExtendedTempoEvent),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 struct MusicEventPayload {
     kind: String,
     channel: Option<u32>,
@@ -452,6 +450,66 @@ struct MusicEventPayload {
     value_float: Option<f32>,
     tempo: Option<f64>,
     preset_dictionary_json: Option<String>,
+}
+
+crate::util::impl_from_json!(MusicEventPayload {
+    kind: String = "kind",
+    channel: Option<u32> = "channel",
+    key: Option<u32> = "key",
+    velocity: Option<u32> = "velocity",
+    duration: Option<f64> = "duration",
+    message_type: Option<i64> = "messageType",
+    value: Option<u32> = "value",
+    pressure: Option<u32> = "pressure",
+    program_number: Option<u32> = "programNumber",
+    data: Option<Vec<u8>> = "data",
+    size_in_bytes: Option<u32> = "sizeInBytes",
+    meta_type: Option<i64> = "metaType",
+    midi_note: Option<f32> = "midiNote",
+    velocity_float: Option<f32> = "velocityFloat",
+    instrument_id: Option<u32> = "instrumentId",
+    group_id: Option<u32> = "groupId",
+    parameter_id: Option<u32> = "parameterId",
+    scope: Option<u32> = "scope",
+    element: Option<u32> = "element",
+    value_float: Option<f32> = "valueFloat",
+    tempo: Option<f64> = "tempo",
+    preset_dictionary_json: Option<String> = "presetDictionaryJson",
+});
+
+impl ToJson for MusicEventPayload {
+    fn to_json(&self) -> JsonValue {
+        JsonValue::Object(
+            [
+                ("kind".into(), self.kind.to_json()),
+                ("channel".into(), self.channel.to_json()),
+                ("key".into(), self.key.to_json()),
+                ("velocity".into(), self.velocity.to_json()),
+                ("duration".into(), self.duration.to_json()),
+                ("messageType".into(), self.message_type.to_json()),
+                ("value".into(), self.value.to_json()),
+                ("pressure".into(), self.pressure.to_json()),
+                ("programNumber".into(), self.program_number.to_json()),
+                ("data".into(), self.data.to_json()),
+                ("sizeInBytes".into(), self.size_in_bytes.to_json()),
+                ("metaType".into(), self.meta_type.to_json()),
+                ("midiNote".into(), self.midi_note.to_json()),
+                ("velocityFloat".into(), self.velocity_float.to_json()),
+                ("instrumentId".into(), self.instrument_id.to_json()),
+                ("groupId".into(), self.group_id.to_json()),
+                ("parameterId".into(), self.parameter_id.to_json()),
+                ("scope".into(), self.scope.to_json()),
+                ("element".into(), self.element.to_json()),
+                ("valueFloat".into(), self.value_float.to_json()),
+                ("tempo".into(), self.tempo.to_json()),
+                (
+                    "presetDictionaryJson".into(),
+                    self.preset_dictionary_json.to_json(),
+                ),
+            ]
+            .into(),
+        )
+    }
 }
 
 impl From<&MusicEvent> for MusicEventPayload {
@@ -847,14 +905,9 @@ impl TryFrom<MusicEventPayload> for MusicEvent {
                 let preset_dictionary = payload
                     .preset_dictionary_json
                     .as_deref()
-                    .map(serde_json::from_str)
-                    .transpose()
-                    .map_err(|error| {
-                        AVAudioError::InvalidArgument(format!(
-                            "failed to decode AVAUPresetEvent dictionary JSON: {error}"
-                        ))
-                    })?
-                    .unwrap_or(Value::Object(Default::default()));
+                    .map(crate::util::from_json)
+                    .transpose()?
+                    .unwrap_or(JsonValue::Object(Default::default()));
                 Ok(Self::AUPreset(AUPresetEvent {
                     scope: require(payload.scope, "scope", "auPreset")?,
                     element: require(payload.element, "element", "auPreset")?,
@@ -873,20 +926,14 @@ impl TryFrom<MusicEventPayload> for MusicEvent {
 
 pub(crate) fn event_to_json_cstring(event: &MusicEvent) -> Result<CString, AVAudioError> {
     let payload = MusicEventPayload::from(event);
-    let json = serde_json::to_string(&payload).map_err(|error| {
-        AVAudioError::InvalidArgument(format!("failed to encode music event: {error}"))
-    })?;
+    let json = payload.to_json().to_string();
     CString::new(json).map_err(|error| {
         AVAudioError::InvalidArgument(format!("music event JSON contains NUL byte: {error}"))
     })
 }
 
 pub(crate) fn event_from_json_str(json: &str) -> Result<MusicEvent, AVAudioError> {
-    let payload = serde_json::from_str::<MusicEventPayload>(json).map_err(|error| {
-        AVAudioError::InvalidArgument(format!(
-            "failed to decode music event payload JSON: {error}"
-        ))
-    })?;
+    let payload = crate::util::from_json::<MusicEventPayload>(json)?;
     MusicEvent::try_from(payload)
 }
 

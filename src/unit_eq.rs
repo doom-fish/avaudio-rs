@@ -10,8 +10,6 @@ use core::ffi::{c_char, c_void};
 use core::ptr;
 use std::convert::TryFrom;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::node::AudioNodeHandle;
@@ -24,8 +22,7 @@ fn band_to_i32(index: usize) -> Result<i32, AVAudioError> {
 }
 
 /// Read-only band state reported by `AVAudioUnitEQ`.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AudioEQBandInfo {
     /// Raw `AVAudioUnitEQFilterType` value.
     pub filter_type: i32,
@@ -38,6 +35,14 @@ pub struct AudioEQBandInfo {
     /// Whether the band is bypassed.
     pub bypass: bool,
 }
+
+crate::util::impl_from_json!(AudioEQBandInfo {
+    filter_type: i32 = "filterType",
+    frequency: f32 = "frequency",
+    bandwidth: f32 = "bandwidth",
+    gain: f32 = "gain",
+    bypass: bool = "bypass",
+});
 
 /// Writable band parameters for `AVAudioUnitEQ`.
 #[derive(Debug, Clone, PartialEq)]

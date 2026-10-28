@@ -9,20 +9,22 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::node::AudioNodeHandle;
 use crate::types::AudioNodeBus;
 use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioConnectionPointInfo {
     pub bus: AudioNodeBus,
     pub node_raw: u64,
 }
+
+crate::util::impl_from_json!(AudioConnectionPointInfo {
+    bus: AudioNodeBus = "bus",
+    node_raw: u64 = "nodeRaw",
+});
 
 /// Wraps an `AVAudioConnectionPoint`.
 pub struct AudioConnectionPoint {

@@ -12,20 +12,23 @@ use core::mem::size_of;
 use core::ptr;
 use core::slice;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::format::{AudioFormat, AudioFormatInfo};
 use crate::util::parse_json_and_free;
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PCMBufferInfo {
     pub frame_capacity: u32,
     pub frame_length: u32,
     pub format: AudioFormatInfo,
 }
+
+crate::util::impl_from_json!(PCMBufferInfo {
+    frame_capacity: u32 = "frameCapacity",
+    frame_length: u32 = "frameLength",
+    format: AudioFormatInfo = "format",
+});
 
 pub struct PCMBuffer {
     pub(crate) ptr: *mut c_void,

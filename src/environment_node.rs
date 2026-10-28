@@ -9,16 +9,13 @@
 use core::ffi::{c_char, c_void};
 use core::ptr;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::node::AudioNodeHandle;
 use crate::util::parse_json_and_free;
 
 /// Listener position in 3D space.
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AudioListenerPosition {
     /// X coordinate.
     pub x: f32,
@@ -28,9 +25,14 @@ pub struct AudioListenerPosition {
     pub z: f32,
 }
 
+crate::util::impl_from_json!(AudioListenerPosition {
+    x: f32 = "x",
+    y: f32 = "y",
+    z: f32 = "z",
+});
+
 /// Listener orientation in angular degrees.
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AudioListenerOrientation {
     /// Yaw angle.
     pub yaw: f32,
@@ -40,9 +42,14 @@ pub struct AudioListenerOrientation {
     pub roll: f32,
 }
 
+crate::util::impl_from_json!(AudioListenerOrientation {
+    yaw: f32 = "yaw",
+    pitch: f32 = "pitch",
+    roll: f32 = "roll",
+});
+
 /// Distance attenuation parameters.
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AudioDistanceAttenuation {
     /// Raw `AVAudioEnvironmentDistanceAttenuationModel` value.
     pub model: i32,
@@ -53,6 +60,13 @@ pub struct AudioDistanceAttenuation {
     /// Rolloff factor.
     pub rolloff_factor: f32,
 }
+
+crate::util::impl_from_json!(AudioDistanceAttenuation {
+    model: i32 = "model",
+    reference_distance: f32 = "referenceDistance",
+    maximum_distance: f32 = "maximumDistance",
+    rolloff_factor: f32 = "rolloffFactor",
+});
 
 /// Wraps an `AVAudioEnvironmentNode`.
 pub struct AudioEnvironmentNode {

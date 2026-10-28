@@ -10,8 +10,6 @@ use core::ffi::{c_char, c_void};
 use core::ptr;
 use std::convert::TryFrom;
 
-use serde::Deserialize;
-
 use crate::error::{from_swift, AVAudioError};
 use crate::ffi;
 use crate::file::PCMBuffer;
@@ -20,14 +18,18 @@ use crate::format::AudioFormatInfo;
 use crate::util::parse_json_and_free;
 
 /// Converter metadata reported by the Swift bridge.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AudioConverterInfo {
     /// Input format info.
     pub input_format: AudioFormatInfo,
     /// Output format info.
     pub output_format: AudioFormatInfo,
 }
+
+crate::util::impl_from_json!(AudioConverterInfo {
+    input_format: AudioFormatInfo = "inputFormat",
+    output_format: AudioFormatInfo = "outputFormat",
+});
 
 /// Mirrors `AVAudioConverterPrimeMethod`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -60,12 +62,16 @@ impl AudioConverterPrimeMethod {
 }
 
 /// Mirrors `AVAudioConverterPrimeInfo`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AudioConverterPrimeInfo {
     pub leading_frames: u32,
     pub trailing_frames: u32,
 }
+
+crate::util::impl_from_json!(AudioConverterPrimeInfo {
+    leading_frames: u32 = "leadingFrames",
+    trailing_frames: u32 = "trailingFrames",
+});
 
 /// Mirrors `AVAudioConverterInputStatus`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -289,7 +295,7 @@ mod tests {
     #[test]
     fn prime_info_deserializes_bridge_shape() {
         let info: AudioConverterPrimeInfo =
-            serde_json::from_str(r#"{"leadingFrames":128,"trailingFrames":64}"#).unwrap();
+            crate::util::from_json(r#"{"leadingFrames":128,"trailingFrames":64}"#).unwrap();
 
         assert_eq!(
             info,
@@ -302,7 +308,7 @@ mod tests {
 
     #[test]
     fn converter_info_deserializes_nested_format_info() {
-        let info: AudioConverterInfo = serde_json::from_str(
+        let info: AudioConverterInfo = crate::util::from_json(
             r#"{"inputFormat":{"commonFormat":1,"sampleRate":44100.0,"channelCount":2,"isInterleaved":false},"outputFormat":{"commonFormat":3,"sampleRate":48000.0,"channelCount":1,"isInterleaved":true}}"#,
         )
         .unwrap();
