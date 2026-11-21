@@ -610,8 +610,8 @@ impl SimplePlayerEventStream {
 /// single-consumer ring.
 ///
 /// The ring is intentionally **lossy**: if the consumer falls behind, the
-/// oldest buffered tap event is overwritten so the tap thread can keep
-/// running without waiting. Drain the stream promptly if every tap snapshot is
+/// ring drops an old event when full or the incoming event when the slot is busy.
+/// Drain the stream promptly if every tap snapshot is
 /// important to your application.
 ///
 /// Requested capacities above `TAP_BUFFER_STREAM_MAX_CAPACITY` are clamped to
@@ -667,8 +667,8 @@ impl TapBufferStream {
     ///
     /// Each event contains the frame length, channel count, sample rate, and a
     /// copy of the samples of the buffer delivered by the tap. When the
-    /// requested capacity is exceeded, the **oldest** buffered event is
-    /// overwritten so the tap thread never waits for the async consumer.
+    /// ring is full, it drops the oldest event. If a consumer holds the slot,
+    /// it drops the incoming event instead of waiting.
     ///
     /// `capacity` must be greater than 0; values above
     /// `TAP_BUFFER_STREAM_MAX_CAPACITY` are clamped to that fixed pre-allocated

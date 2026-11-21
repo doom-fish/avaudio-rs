@@ -6,14 +6,14 @@ Safe Rust bindings for Apple `AVFoundation` audio APIs on macOS 12 or later.
 
 ```toml
 [dependencies]
-avaudio = "0.7"
+avaudio = "0.8.0"
 ```
 
 Enable the `async` feature for the future and stream wrappers:
 
 ```toml
 [dependencies]
-avaudio = { version = "0.7", features = ["async"] }
+avaudio = { version = "0.8.0", features = ["async"] }
 ```
 
 ## Features
@@ -38,6 +38,9 @@ avaudio = { version = "0.7", features = ["async"] }
 See [COVERAGE.md](COVERAGE.md) for the API coverage table.
 
 ## Async futures and streams
+
+With `doom-fish-utils` 0.5.0, a full tap ring can wait for a slot that the reader holds.
+On `main`, the ring drops the incoming event instead.
 
 Enable the `async` feature to use `avaudio::async_api` and executor-agnostic wrappers around `AVFAudio`'s callback surfaces. `AsyncAudioApplication::request_record_permission` exposes the one-shot microphone permission callback as a `Future`; `MutedSpeechActivityStream`, `ConfigChangeStream`, `PlayerNodeCompletionStream`, `RecorderEventStream`, `SimplePlayerEventStream`, and `TapBufferStream` expose event/listener surfaces as bounded async streams.
 
