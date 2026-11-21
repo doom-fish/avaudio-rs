@@ -17,7 +17,7 @@ const RING_CAPACITY: usize = 512;
 
 #[test]
 fn tap_buffer_ring_handles_render_rate_without_hanging() {
-    let (producer, consumer) = SpscRing::<TapBufferEvent, RING_CAPACITY>::new();
+    let (producer, mut consumer) = SpscRing::<TapBufferEvent, RING_CAPACITY>::new();
     let producer_thread = thread::spawn(move || {
         let start = Instant::now();
         let payload = vec![vec![0.5_f32; FRAMES_PER_EVENT as usize]; 2];

@@ -221,11 +221,11 @@ impl PCMBuffer {
     }
 
     pub fn frame_capacity(&self) -> Result<u32, AVAudioError> {
-        Ok(self.info()?.frame_capacity)
+        Ok(self.layout().frame_capacity)
     }
 
     pub fn frame_length(&self) -> Result<u32, AVAudioError> {
-        Ok(self.info()?.frame_length)
+        Ok(self.layout().frame_length)
     }
 
     pub fn set_frame_length(&mut self, frame_length: u32) -> Result<(), AVAudioError> {

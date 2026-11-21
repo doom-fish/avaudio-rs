@@ -716,7 +716,7 @@ impl TapBufferStream {
         })
     }
 
-    pub const fn next(&self) -> TapBufferNext<'_> {
+    pub const fn next(&mut self) -> TapBufferNext<'_> {
         self.inner.pop_async()
     }
 
